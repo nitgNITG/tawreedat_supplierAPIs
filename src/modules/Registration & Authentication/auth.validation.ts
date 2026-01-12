@@ -3,13 +3,23 @@ import { GenderEnum } from "../../types/global.types";
 
 export const registerSchema = z
   .object({
-    firstName: z.string().min(3).max(50),
-    lastName: z.string().min(3).max(50),
+    // user fields
+    full_name: z.string().min(3).max(50),
     email: z.email(),
-    password: z.string(),
-    age: z.number().min(18).max(200).optional(),
-    gender: z.literal([GenderEnum.MALE, GenderEnum.FEMALE]).optional(),
     phone: z.string().optional(),
+    password: z.string().min(6),
+    image_url: z.string().optional(),
+    lang: z.string().optional(),
+    birth_date: z.coerce.date().optional(),
+    gender: z.literal([GenderEnum.MALE, GenderEnum.FEMALE]).optional(),
+    login_type: z.string().optional(),
+    apple_id: z.string().optional(),
+    // supplier fields
+    type_id: z.number().optional(),
+    national_id: z.string(),
+    synonyms: z.string().optional(),
+    taxCard: z.string(),
+    commercial_register: z.string(),
   })
   .superRefine((args, ctx) => {
     if (args.phone) {

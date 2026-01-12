@@ -4,3 +4,7 @@ uploads
 .env*
 .vercel
 .env*.local
+
+/generated/prisma
+
+/generated/prisma

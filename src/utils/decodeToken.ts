@@ -1,17 +1,13 @@
 import { NextFunction } from "express";
-import { UserModel } from "../modules/user/user.model";
 import { MyJwtPayload, verifyJwt } from "./jwt";
-import { HydratedDocument } from "mongoose";
-import { IUser } from "../types/global.interfaces";
 import { AppError } from "../core/errors/app.error";
 import { HttpStatusCode } from "../core/http/http.status.code";
+import { prisma } from "../DB/lib/prisma";
 
 export enum TokenTypesEnum {
   access = "access",
   refresh = "refresh",
 }
-
-const userModel = UserModel;
 
 export const decodeToken = async ({
   authorization,
@@ -19,7 +15,7 @@ export const decodeToken = async ({
 }: {
   authorization: string;
   tokenType?: TokenTypesEnum;
-}): Promise<{ user: HydratedDocument<IUser>; payload: MyJwtPayload }> => {
+}) => {
   // step: bearer key
   if (!authorization.startsWith(process.env.BEARER_KEY as string)) {
     throw new AppError(HttpStatusCode.BAD_REQUEST, "Invalid bearer key");
@@ -38,7 +34,7 @@ export const decodeToken = async ({
   }
   let payload = verifyJwt({ token, privateKey }); // result || error
   // step: user existence
-  const user = await userModel.findOne({ _id: payload.userId });
+  const user = await prisma.users.findUnique({ where: { id: Number(payload.userId) } });
   if (!user) {
     throw new AppError(HttpStatusCode.NOT_FOUND, "User not found");
   }

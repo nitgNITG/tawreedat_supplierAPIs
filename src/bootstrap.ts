@@ -2,17 +2,17 @@ import express, { NextFunction, Request, Response } from "express";
 import path from "path";
 import dotenv from "dotenv";
 import router from "./routes";
-import { connectDB } from "./DB/db.connection";
 import cors from "cors";
 import { errorMiddleware } from "./core/middlewares/error.middleware";
 import { rateLimit } from "express-rate-limit";
 import { logger } from "./config/logger.config";
 import { AppError } from "./core/errors/app.error";
 import { HttpStatusCode } from "./core/http/http.status.code";
+import { prisma } from "./DB/lib/prisma";
 
 const app = express();
 dotenv.config({
-  path: path.resolve("./src/config/.env"),
+  path: path.resolve("./.env"),
 });
 var whitelist = ["http://127.0.0.1:5501", undefined];
 var corsOptions = {
@@ -33,7 +33,7 @@ const limiter = rateLimit({
 });
 
 const bootstrap = async () => {
-  await connectDB();
+  // await connectDB();
 
   app.use(limiter);
   // app.use(cors(corsOptions));
