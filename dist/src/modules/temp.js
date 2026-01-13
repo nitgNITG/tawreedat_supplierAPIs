@@ -1,11 +1,11 @@
 "use strict";
 // generator client {
 //   provider = "prisma-client-js"
-//   output   = "../generated/prisma"
 // }
 Object.defineProperty(exports, "__esModule", { value: true });
 // datasource db {
 //   provider = "mysql"
+//   url      = env("DATABASE_URL")
 // }
 // // ========== Enums ==========
 // enum DiscountType {
@@ -25,6 +25,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // model Users {
 //   id                    Int       @id @default(autoincrement())
 //   role_id               Int?
+//   firstname             String?
 //   full_name             String    @db.VarChar(191)
 //   email                 String    @unique @db.VarChar(191)
 //   phone                 String?   @unique @db.VarChar(191)
@@ -32,14 +33,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 //   image_url             String?   @db.VarChar(191)
 //   lang                  String?   @default("ar") @db.VarChar(10)
 //   last_login_at         DateTime?
-//   otp                   String?   @db.VarChar(10)
 //   is_confirmed          Boolean   @default(false)
-//   password_last_updated DateTime?
 //   birth_date            DateTime?
 //   gender                Gender?
 //   fcm_token             String?   @db.VarChar(191)
 //   login_type            String?   @db.VarChar(50)
 //   apple_id              String?   @db.VarChar(191)
+//   emailOtp              String?
+//   emailOtp_expiredAt    DateTime?
+//   passwordOtp           String?
+//   passwordOtp_expiredAt DateTime?
+//   newEmail              String?
+//   newEmailOtp           String?
+//   newEmailOtp_expiredAt DateTime?
+//   credentialsChangedAt  DateTime?
 //   created_at            DateTime  @default(now())
 //   updated_at            DateTime  @updatedAt
 //   deleted_at            DateTime?

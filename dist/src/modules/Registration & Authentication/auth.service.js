@@ -16,9 +16,9 @@ class AuthService {
     constructor() { }
     // ============================ register ============================
     register = async (req, res, next) => {
-        const { full_name, email, phone, password, image_url, lang, birth_date, gender, login_type, apple_id, type_id, national_id, synonyms, taxCard, commercial_register, } = req.body;
+        const { full_name, email, phone, password, image_url, lang, birth_date, gender, login_type, apple_id, type_id, national_id, synonyms, tax_card, commercial_register, } = req.body;
         // step: check user existence
-        const isUserExist = await prisma_1.prisma.users.findUnique({ where: { email } });
+        const isUserExist = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (isUserExist) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "User already exist");
         }
@@ -36,30 +36,30 @@ class AuthService {
         if (!isEmailSended) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Error while sending email");
         }
-        // step: get or create supplier role
-        let role = await prisma_1.prisma.userRoles.findFirst({
+        // step: get or create UserRole
+        let role = await prisma_1.prisma.userRole.findFirst({
             where: { name: "Supplier" },
         });
         if (!role) {
-            role = await prisma_1.prisma.userRoles.create({
+            role = await prisma_1.prisma.userRole.create({
                 data: {
                     name: "Supplier",
                     description: "Supplier role description",
                 },
             });
         }
-        // step: get or create supplier type
-        let supplierType = await prisma_1.prisma.supplierTypes.findFirst();
+        // step: get or create SupplierType
+        let supplierType = await prisma_1.prisma.supplierType.findFirst();
         if (!supplierType) {
-            supplierType = await prisma_1.prisma.supplierTypes.create({
+            supplierType = await prisma_1.prisma.supplierType.create({
                 data: {
                     name: "Factory",
                     description: "Factory description",
                 },
             });
         }
-        // step: create new user and supplier
-        const user = await prisma_1.prisma.users.create({
+        // step: create User - Supplier - UserVerify
+        const user = await prisma_1.prisma.user.create({
             data: {
                 role_id: role.id,
                 full_name,
@@ -72,17 +72,22 @@ class AuthService {
                 gender: gender ?? global_types_1.GenderEnum.MALE,
                 login_type: login_type ?? null,
                 apple_id: apple_id ?? null,
-                emailOtp: await (0, bcrypt_1.hash)(otpCode),
-                emailOtp_expiredAt: new Date(Date.now() + 5 * 60 * 1000),
             },
         });
-        const supplier = await prisma_1.prisma.suppliers.create({
+        const userVerify = await prisma_1.prisma.userVerify.create({
+            data: {
+                user_id: user.id,
+                email_otp: await (0, bcrypt_1.hash)(otpCode),
+                email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
+            },
+        });
+        const supplier = await prisma_1.prisma.supplier.create({
             data: {
                 id: user.id,
                 type_id: supplierType.id ?? null,
                 national_id,
                 synonyms: synonyms ?? null,
-                taxCard,
+                tax_card,
                 commercial_register,
             },
         });
@@ -109,7 +114,7 @@ class AuthService {
     login = async (req, res, next) => {
         const { email, password } = req.body;
         // step: check credentials
-        const user = await prisma_1.prisma.users.findUnique({ where: { email } });
+        const user = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (!user || !(await (0, bcrypt_1.compare)(password, user.password))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
         }
@@ -153,26 +158,33 @@ class AuthService {
         });
         return (0, response_handler_1.responseHandler)({ res, data: { accessToken } });
     };
-    // ============================ confirmEmail ============================
-    confirmEmail = async (req, res, next) => {
+    // ============================ verifyEmail ============================
+    verifyEmail = async (req, res, next) => {
         const { email, firstOtp, secondOtp } = req.body;
-        // step: check user exitance
-        const user = await prisma_1.prisma.users.findUnique({ where: { email } });
+        // step: check user and userVerify exitance
+        const user = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (!user) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "User not found");
         }
-        // step: check emailOtp
-        if (!user.emailOtp || !(await (0, bcrypt_1.compare)(firstOtp, user.emailOtp))) {
+        const userVerify = await prisma_1.prisma.userVerify.findFirst({
+            where: { user_id: user.id },
+        });
+        if (!userVerify) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.INTERNAL_SERVER_ERROR, "UserVerify of user not found");
+        }
+        // step: check email_otp
+        if (!userVerify.email_otp ||
+            !(await (0, bcrypt_1.compare)(firstOtp, userVerify.email_otp))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid otp");
         }
-        if (user.emailOtp_expiredAt &&
-            user.emailOtp_expiredAt < new Date(Date.now())) {
+        if (userVerify.email_otp_expired_at &&
+            userVerify.email_otp_expired_at < new Date(Date.now())) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "otp expired");
         }
         // step: case 1 email not confrimed (confirm first email)
         if (!user.is_confirmed) {
             // step: confirm email
-            const updatedUser = await prisma_1.prisma.users.update({
+            const updatedUser = await prisma_1.prisma.user.update({
                 where: { email },
                 data: { is_confirmed: true },
             });
@@ -183,17 +195,18 @@ class AuthService {
         if (!secondOtp) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Email already confirmed, if you want to update email please send firstOtp and secondOtp");
         }
-        // step: check newEmailOtp
-        if (!user.newEmailOtp || !(await (0, bcrypt_1.compare)(secondOtp, user.newEmailOtp))) {
+        // step: check new_email_otp
+        if (!userVerify.new_email_otp ||
+            !(await (0, bcrypt_1.compare)(secondOtp, userVerify.new_email_otp))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Invalid otp for second email");
         }
-        if (user.newEmailOtp_expiredAt &&
-            user.newEmailOtp_expiredAt < new Date(Date.now())) {
+        if (userVerify.new_email_otp_expired_at &&
+            userVerify.new_email_otp_expired_at < new Date(Date.now())) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "otp expired for second email");
         }
         // step: confirm email
-        const newEmail = user.newEmail;
-        const updatedUser = await prisma_1.prisma.users.update({
+        const newEmail = userVerify.new_email;
+        const updatedUser = await prisma_1.prisma.user.update({
             where: { email },
             data: { email: newEmail },
         });
@@ -205,7 +218,7 @@ class AuthService {
     // ============================ updateEmail ============================
     updateEmail = async (req, res, next) => {
         const user = res.locals.user;
-        const { newEmail } = req.body;
+        const { new_email } = req.body;
         // step: check if email confirmed
         if (!user.is_confirmed) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Please confirm email to update it");
@@ -227,7 +240,7 @@ class AuthService {
         // step: send otp to new email
         const otpCodeForNewEmail = (0, createOtp_1.createOtp)();
         const resultOfSendEmail = await (0, send_email_1.sendEmail)({
-            to: newEmail,
+            to: new_email,
             subject: "TawreedatApp",
             html: (0, generateHTML_1.template)({
                 otpCode: otpCodeForNewEmail,
@@ -238,15 +251,15 @@ class AuthService {
         if (!resultOfSendEmail.isEmailSended) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Error while checking email");
         }
-        // step: save emailOtp, newEmail and newEmailOtp
-        const updatedUser = await prisma_1.prisma.users.update({
-            where: { id: user.id },
+        // step: save email_otp, new_email and new_email_otp
+        const updatedUserVerify = await prisma_1.prisma.userVerify.update({
+            where: { user_id: user.id },
             data: {
-                emailOtp: await (0, bcrypt_1.hash)(otpCodeForCurrentEmail),
-                emailOtp_expiredAt: new Date(Date.now() + 5 * 60 * 1000),
-                newEmail,
-                newEmailOtp: await (0, bcrypt_1.hash)(otpCodeForNewEmail),
-                newEmailOtp_expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+                email_otp: await (0, bcrypt_1.hash)(otpCodeForCurrentEmail),
+                email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
+                new_email: new_email,
+                new_email_otp: await (0, bcrypt_1.hash)(otpCodeForNewEmail),
+                new_email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
             },
         });
         return (0, response_handler_1.responseHandler)({
@@ -254,18 +267,24 @@ class AuthService {
             message: "OTP sended for current email and new email, please confirm new email to save updates",
         });
     };
-    // ============================ resendEmailOtp ============================
-    resendEmailOtp = async (req, res, next) => {
+    // ============================ resendOtp ============================
+    resendOtp = async (req, res, next) => {
         const { email } = req.body;
         // step: check email existence
-        const isUserExist = await prisma_1.prisma.users.findUnique({ where: { email } });
+        const isUserExist = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (!isUserExist) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
         }
         const user = isUserExist;
+        const userVerify = await prisma_1.prisma.userVerify.findFirst({
+            where: { user_id: user.id },
+        });
+        if (!userVerify) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.INTERNAL_SERVER_ERROR, "UserVerify of user not found");
+        }
         // step: check if email otp not expired yet
-        if (user.emailOtp_expiredAt &&
-            user.emailOtp_expiredAt > new Date(Date.now())) {
+        if (userVerify?.email_otp_expired_at &&
+            userVerify?.email_otp_expired_at > new Date(Date.now())) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Your OTP not expired yet");
         }
         // step: send email otp
@@ -282,12 +301,12 @@ class AuthService {
         if (!isEmailSended) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Error while sending email");
         }
-        // step: update emailOtp
-        const updatedUser = await prisma_1.prisma.users.update({
-            where: { email: user.email },
+        // step: update email_otp
+        const updatedUserVerify = await prisma_1.prisma.userVerify.update({
+            where: { user_id: user.id },
             data: {
-                emailOtp: await (0, bcrypt_1.hash)(otpCode),
-                emailOtp_expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+                email_otp: await (0, bcrypt_1.hash)(otpCode),
+                email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
             },
         });
         return (0, response_handler_1.responseHandler)({ res, message: "OTP sended successfully" });
@@ -295,21 +314,21 @@ class AuthService {
     // ============================ updatePassword ============================
     updatePassword = async (req, res, next) => {
         const user = res.locals.user;
-        const { currentPassword, newPassword } = req.body;
+        const { current_password, new_password } = req.body;
         // step: check password correction
-        if (!(await (0, bcrypt_1.compare)(currentPassword, user.password))) {
+        if (!(await (0, bcrypt_1.compare)(current_password, user.password))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
         }
-        // step: check newPassword not equal currentPassword
-        if (await (0, bcrypt_1.compare)(newPassword, user.password)) {
+        // step: check new_password not equal current_password
+        if (await (0, bcrypt_1.compare)(new_password, user.password)) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "You can not make new password equal to old password");
         }
-        // step: update password and credentialsChangedAt
-        const updatedUser = await prisma_1.prisma.users.update({
+        // step: update password and password_last_updated
+        const updatedUser = await prisma_1.prisma.user.update({
             where: { id: user.id },
             data: {
-                password: await (0, bcrypt_1.hash)(newPassword),
-                credentialsChangedAt: new Date(Date.now()),
+                password: await (0, bcrypt_1.hash)(new_password),
+                password_last_updated: new Date(Date.now()),
             },
         });
         return (0, response_handler_1.responseHandler)({
@@ -321,14 +340,20 @@ class AuthService {
     forgetPassword = async (req, res, next) => {
         const { email } = req.body;
         // step: check email existence
-        const isUserExist = await prisma_1.prisma.users.findUnique({ where: { email } });
+        const isUserExist = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (!isUserExist) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
         }
         const user = isUserExist;
+        const userVerify = await prisma_1.prisma.userVerify.findUnique({
+            where: { user_id: user.id },
+        });
+        if (!userVerify) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.INTERNAL_SERVER_ERROR, "UserVerify of user not found");
+        }
         // step: check if password otp not expired yet
-        if (user.passwordOtp_expiredAt &&
-            user.passwordOtp_expiredAt > new Date(Date.now())) {
+        if (userVerify.password_otp_expired_at &&
+            userVerify.password_otp_expired_at > new Date(Date.now())) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Your OTP not expired yet");
         }
         // step: send email otp
@@ -345,12 +370,12 @@ class AuthService {
         if (!isEmailSended) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Error while sending email");
         }
-        // step: update passwordOtp
-        const updatedUser = await prisma_1.prisma.users.update({
-            where: { id: user.id },
+        // step: update password_otp
+        const updatedUserVerify = await prisma_1.prisma.userVerify.update({
+            where: { user_id: user.id },
             data: {
-                passwordOtp: await (0, bcrypt_1.hash)(otpCode),
-                passwordOtp_expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+                password_otp: await (0, bcrypt_1.hash)(otpCode),
+                password_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
             },
         });
         return (0, response_handler_1.responseHandler)({
@@ -360,22 +385,28 @@ class AuthService {
     };
     // ============================ changePassword ============================
     changePassword = async (req, res, next) => {
-        const { email, otp, newPassword } = req.body;
+        const { email, otp, new_password } = req.body;
         // step: check email existence
-        const isUserExist = await prisma_1.prisma.users.findUnique({ where: { email } });
+        const isUserExist = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (!isUserExist) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
         }
         const user = isUserExist;
+        const userVerify = await prisma_1.prisma.userVerify.findUnique({
+            where: { user_id: user.id },
+        });
+        if (!userVerify) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.INTERNAL_SERVER_ERROR, "UserVerify of user not found");
+        }
         // step: check otp
-        if (!(await (0, bcrypt_1.compare)(otp, user.passwordOtp))) {
+        if (!(await (0, bcrypt_1.compare)(otp, userVerify.password_otp))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Invalid OTP");
         }
         // step: change password
-        const updatedUser = await prisma_1.prisma.users.update({
+        const updatedUser = await prisma_1.prisma.user.update({
             where: { email },
             data: {
-                password: await (0, bcrypt_1.hash)(newPassword),
+                password: await (0, bcrypt_1.hash)(new_password),
             },
         });
         return (0, response_handler_1.responseHandler)({
@@ -386,10 +417,10 @@ class AuthService {
     // ============================ logout ============================
     logout = async (req, res, next) => {
         const user = res.locals.user;
-        // step: change credentialsChangedAt
-        const updatedUser = await prisma_1.prisma.users.update({
+        // step: change password_last_updated
+        const updatedUser = await prisma_1.prisma.user.update({
             where: { id: user.id },
-            data: { credentialsChangedAt: new Date(Date.now()) },
+            data: { password_last_updated: new Date(Date.now()) },
         });
         return (0, response_handler_1.responseHandler)({
             res,

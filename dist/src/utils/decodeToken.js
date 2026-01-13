@@ -30,13 +30,13 @@ const decodeToken = async ({ authorization, tokenType = TokenTypesEnum.access, }
     }
     let payload = (0, jwt_1.verifyJwt)({ token, privateKey }); // result || error
     // step: user existence
-    const user = await prisma_1.prisma.users.findUnique({ where: { id: Number(payload.userId) } });
+    const user = await prisma_1.prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user) {
         throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
     }
     // step: credentials changing
-    if (user.credentialsChangedAt) {
-        if (user.credentialsChangedAt.getTime() > payload.iat * 1000) {
+    if (user.password_last_updated) {
+        if (user.password_last_updated.getTime() > payload.iat * 1000) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "You have to login");
         }
     }

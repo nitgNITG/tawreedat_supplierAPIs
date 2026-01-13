@@ -34,13 +34,13 @@ export const decodeToken = async ({
   }
   let payload = verifyJwt({ token, privateKey }); // result || error
   // step: user existence
-  const user = await prisma.users.findUnique({ where: { id: Number(payload.userId) } });
+  const user = await prisma.user.findUnique({ where: { id: payload.userId } });
   if (!user) {
     throw new AppError(HttpStatusCode.NOT_FOUND, "User not found");
   }
   // step: credentials changing
-  if (user.credentialsChangedAt) {
-    if (user.credentialsChangedAt.getTime() > payload.iat * 1000) {
+  if (user.password_last_updated) {
+    if (user.password_last_updated.getTime() > payload.iat * 1000) {
       throw new AppError(HttpStatusCode.BAD_REQUEST, "You have to login");
     }
   }

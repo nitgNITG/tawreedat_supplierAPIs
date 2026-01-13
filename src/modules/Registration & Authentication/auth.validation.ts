@@ -18,7 +18,7 @@ export const registerSchema = z
     type_id: z.number().optional(),
     national_id: z.string(),
     synonyms: z.string().optional(),
-    taxCard: z.string(),
+    tax_card: z.string(),
     commercial_register: z.string(),
   })
   .superRefine((args, ctx) => {
@@ -40,23 +40,23 @@ export const loginSchema = z.object({
   password: z.string(),
 });
 
-export const confirmEmailSchema = z.object({
+export const verifyEmailSchema = z.object({
   email: z.email(),
   firstOtp: z.string(),
   secondOtp: z.string().optional(),
 });
 
 export const updateEmailSchema = z.object({
-  newEmail: z.email(),
+  new_email: z.email(),
 });
 
-export const resendEmailOtpSchema = z.object({
+export const resendOtpSchema = z.object({
   email: z.email(),
 });
 
 export const updatePasswordSchema = z.object({
-  currentPassword: z.string(),
-  newPassword: z.string(),
+  current_password: z.string(),
+  new_password: z.string(),
 });
 
 export const forgetPasswordSchema = z.object({
@@ -66,5 +66,5 @@ export const forgetPasswordSchema = z.object({
 export const changePasswordSchema = z.object({
   email: z.email(),
   otp: z.string(),
-  newPassword: z.string(),
+  new_password: z.string(),
 });

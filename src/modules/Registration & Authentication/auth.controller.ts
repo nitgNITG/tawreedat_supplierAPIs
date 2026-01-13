@@ -3,11 +3,11 @@ import { AuthService } from "./auth.service";
 import { validation } from "../../core/middlewares/validation.middleware";
 import {
   changePasswordSchema,
-  confirmEmailSchema,
+  verifyEmailSchema,
   forgetPasswordSchema,
   loginSchema,
   registerSchema,
-  resendEmailOtpSchema,
+  resendOtpSchema,
   updateEmailSchema,
   updatePasswordSchema,
 } from "./auth.validation";
@@ -18,9 +18,9 @@ const authService = new AuthService();
 router.post("/register", validation(registerSchema), authService.register);
 router.post("/login", validation(loginSchema), authService.login);
 router.post("/refresh-token", authService.refreshToken);
-router.post("/confirm-email", validation(confirmEmailSchema), authService.confirmEmail);
+router.post("/verify-email", validation(verifyEmailSchema), authService.verifyEmail);
 router.patch("/update-email",auth,validation(updateEmailSchema),authService.updateEmail);
-router.post("/resend-email-otp",validation(resendEmailOtpSchema),authService.resendEmailOtp);
+router.post("/resend-otp",validation(resendOtpSchema),authService.resendOtp);
 router.patch("/update-password",auth,validation(updatePasswordSchema),authService.updatePassword);
 router.post("/forget-password",validation(forgetPasswordSchema),authService.forgetPassword);
 router.patch("/change-password",validation(changePasswordSchema),authService.changePassword);

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePasswordSchema = exports.forgetPasswordSchema = exports.updatePasswordSchema = exports.resendEmailOtpSchema = exports.updateEmailSchema = exports.confirmEmailSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.changePasswordSchema = exports.forgetPasswordSchema = exports.updatePasswordSchema = exports.resendOtpSchema = exports.updateEmailSchema = exports.verifyEmailSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = __importDefault(require("zod"));
 const global_types_1 = require("../../types/global.types");
 exports.registerSchema = zod_1.default
@@ -23,7 +23,7 @@ exports.registerSchema = zod_1.default
     type_id: zod_1.default.number().optional(),
     national_id: zod_1.default.string(),
     synonyms: zod_1.default.string().optional(),
-    taxCard: zod_1.default.string(),
+    tax_card: zod_1.default.string(),
     commercial_register: zod_1.default.string(),
 })
     .superRefine((args, ctx) => {
@@ -43,20 +43,20 @@ exports.loginSchema = zod_1.default.object({
     email: zod_1.default.email(),
     password: zod_1.default.string(),
 });
-exports.confirmEmailSchema = zod_1.default.object({
+exports.verifyEmailSchema = zod_1.default.object({
     email: zod_1.default.email(),
     firstOtp: zod_1.default.string(),
     secondOtp: zod_1.default.string().optional(),
 });
 exports.updateEmailSchema = zod_1.default.object({
-    newEmail: zod_1.default.email(),
+    new_email: zod_1.default.email(),
 });
-exports.resendEmailOtpSchema = zod_1.default.object({
+exports.resendOtpSchema = zod_1.default.object({
     email: zod_1.default.email(),
 });
 exports.updatePasswordSchema = zod_1.default.object({
-    currentPassword: zod_1.default.string(),
-    newPassword: zod_1.default.string(),
+    current_password: zod_1.default.string(),
+    new_password: zod_1.default.string(),
 });
 exports.forgetPasswordSchema = zod_1.default.object({
     email: zod_1.default.email(),
@@ -64,5 +64,5 @@ exports.forgetPasswordSchema = zod_1.default.object({
 exports.changePasswordSchema = zod_1.default.object({
     email: zod_1.default.email(),
     otp: zod_1.default.string(),
-    newPassword: zod_1.default.string(),
+    new_password: zod_1.default.string(),
 });

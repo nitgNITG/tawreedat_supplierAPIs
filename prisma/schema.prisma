@@ -7,14 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Json formats notes:
-// Users > emailOtp
-// {
-//   otp: string,
-//   expiredAt: Date
-// }
+// =========================================================
+// Enums
+// =========================================================
 
-// ========== Enums ==========
+enum Gender {
+  male
+  female
+}
+
 enum DiscountType {
   percent
   fixed
@@ -26,322 +27,342 @@ enum ContractStatus {
   cancelled
 }
 
-enum Gender {
-  male
-  female
-}
+// =========================================================
+// Models
+// =========================================================
 
-// ========== Users ==========
-model Users {
-  id                    Int       @id @default(autoincrement())
-  role_id               Int?
+// ========== User ==========
+
+model User {
+  id                    String    @id @default(uuid())
+  role_id               String
   full_name             String    @db.VarChar(191)
   email                 String    @unique @db.VarChar(191)
   phone                 String?   @unique @db.VarChar(191)
   password              String    @db.VarChar(191)
   image_url             String?   @db.VarChar(191)
-  lang                  String?   @default("ar") @db.VarChar(10)
-  last_login_at         DateTime?
-  is_confirmed          Boolean   @default(false)
+  lang                  String?   @db.VarChar(191)
+  last_login_at         String?   @db.VarChar(191)
+  is_confirmed          Boolean?  @default(false)
+  password_last_updated DateTime?
   birth_date            DateTime?
   gender                Gender?
   fcm_token             String?   @db.VarChar(191)
-  login_type            String?   @db.VarChar(50)
+  login_type            String?   @db.VarChar(191)
   apple_id              String?   @db.VarChar(191)
-  emailOtp              String?
-  emailOtp_expiredAt    DateTime?
-  passwordOtp           String?
-  passwordOtp_expiredAt DateTime?
-  newEmail              String?
-  newEmailOtp           String?
-  newEmailOtp_expiredAt DateTime?
-  credentialsChangedAt  DateTime?
   created_at            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
   deleted_at            DateTime?
 
-  // Relations
-  role     UserRoles? @relation(fields: [role_id], references: [id])
-  supplier Suppliers?
+  role     UserRole? @relation(fields: [role_id], references: [id])
+  supplier Supplier?
+
+  @@map("user")
 }
 
-model UserRoles {
-  id          Int       @id @default(autoincrement())
+model UserRole {
+  id          String    @id @default(uuid())
   name        String    @db.VarChar(191)
   description String?   @db.VarChar(191)
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
   deleted_at  DateTime?
+  users       User[]
 
-  // Relations
-  users Users[]
+  @@map("user_role")
 }
 
-// ========== Suppliers ==========
-model Suppliers {
-  id                  Int       @id
-  type_id             Int?
-  badges_id           Int?
-  national_id         String?   @db.VarChar(191)
+model UserVerify {
+  id      String  @id @default(uuid())
+  user_id String  @unique() @db.VarChar(191)
+  email   String? @default(dbgenerated("NULL")) @db.VarChar(191)
+  phone   String? @default(dbgenerated("NULL")) @db.VarChar(191)
+  code    String? @db.VarChar(191)
+
+  // New OTP Fields
+  email_otp                String?   @default(dbgenerated("NULL")) @db.VarChar(191)
+  email_otp_expired_at     DateTime? @default(dbgenerated("NULL"))
+  password_otp             String?   @default(dbgenerated("NULL")) @db.VarChar(191)
+  password_otp_expired_at  DateTime? @default(dbgenerated("NULL"))
+  new_email                String?   @default(dbgenerated("NULL")) @db.VarChar(191)
+  new_email_otp            String?   @default(dbgenerated("NULL")) @db.VarChar(191)
+  new_email_otp_expired_at DateTime? @default(dbgenerated("NULL"))
+
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
+  deleted_at DateTime?
+
+  @@map("user_verify")
+}
+
+// ========== Supplier ==========
+
+model Supplier {
+  id                  String    @id // References User.id (String)
+  type_id             String
+  badges_id           String?
+  national_id         String    @db.VarChar(191)
   synonyms            String?   @db.VarChar(191)
-  taxCard             String?   @db.VarChar(191)
-  commercial_register String?   @db.VarChar(191)
-  is_approved         Boolean   @default(false)
-  is_active           Boolean   @default(false)
+  tax_card            String    @db.VarChar(191)
+  commercial_register String    @db.VarChar(191)
+  is_approved         Boolean?  @default(false)
+  is_active           Boolean?  @default(true)
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
   deleted_at          DateTime?
 
-  // Relations
-  user      Users                    @relation(fields: [id], references: [id], onDelete: Cascade)
-  type      SupplierTypes?           @relation(fields: [type_id], references: [id], onDelete: SetNull)
-  badge     SupplierBadges?          @relation(fields: [badges_id], references: [id], onDelete: SetNull)
-  addresses SupplierStoreAddresses[]
-  stats     SupplierStats?
-  products  Products[]
-  contracts Contracts[]
+  user      User                   @relation(fields: [id], references: [id])
+  type      SupplierType?          @relation(fields: [type_id], references: [id])
+  badge     SupplierBadge?         @relation(fields: [badges_id], references: [id])
+  addresses SupplierStoreAddress[]
+  products  Product[]
+  contracts Contract[]
+  stats     SupplierStat?
+
+  @@map("supplier")
 }
 
-model SupplierTypes {
-  id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar(191)
-  description String?   @db.VarChar(191)
-  synonyms    String?   @db.VarChar(191)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+model SupplierType {
+  id          String     @id @default(uuid())
+  name        String     @db.VarChar(191)
+  description String?    @db.VarChar(191)
+  synonyms    String?    @db.VarChar(191)
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
   deleted_at  DateTime?
+  suppliers   Supplier[]
 
-  // Relations
-  suppliers Suppliers[]
+  @@map("supplier_type")
 }
 
-model SupplierStoreAddresses {
-  id                 Int       @id @default(autoincrement())
-  supplier_id        Int
+model SupplierStoreAddress {
+  id                 String    @id @default(uuid())
+  supplier_id        String
   address_line_1     String?   @db.VarChar(191)
   address_line_2     String?   @db.VarChar(191)
   city               String?   @db.VarChar(191)
   state              String?   @db.VarChar(191)
-  country            String    @default("Egypt") @db.VarChar(191)
+  country            String?   @default("Egypt") @db.VarChar(191)
   postal_code        String?   @db.VarChar(191)
   latitude           Decimal?  @db.Decimal(10, 8)
   longitude          Decimal?  @db.Decimal(11, 8)
   contact_name       String?   @db.VarChar(191)
   contact_phone      String?   @db.VarChar(191)
   working_hours      Json?
-  delivery_radius_km Decimal?  @db.Decimal(10, 2)
+  delivery_radius_km Decimal?
   covered_cities     Json?
   created_at         DateTime  @default(now())
   updated_at         DateTime  @updatedAt
   deleted_at         DateTime?
+  supplier           Supplier? @relation(fields: [supplier_id], references: [id])
 
-  // Relations
-  supplier Suppliers @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+  @@map("supplier_store_address")
 }
 
 model SupplierActivity {
-  id                 Int       @id @default(autoincrement())
-  product_id         Int
-  old_price_out_site Decimal?  @db.Decimal(10, 2)
-  new_price_out_site Decimal?  @db.Decimal(10, 2)
-  changed_by_id      Int?
+  id                 String    @id @default(uuid())
+  product_id         String?
+  old_price_out_site Decimal?
+  new_price_out_site Decimal?
+  changed_by_id      String?
   change_reason      String?   @db.VarChar(191)
   created_at         DateTime  @default(now())
   updated_at         DateTime  @updatedAt
   deleted_at         DateTime?
+  product            Product?  @relation(fields: [product_id], references: [id])
 
-  // Relations
-  product Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  @@map("supplier_activity")
 }
 
-model SupplierStats {
-  supplier_id          Int       @id
-  total_contract_value Decimal?  @db.Decimal(15, 2)
-  total_customers      Int       @default(0)
-  active_products      Int       @default(0)
-  total_orders         Int       @default(0)
-  delivered_orders     Int       @default(0)
-  cancelled_orders     Int       @default(0)
-  rating               Decimal?  @db.Decimal(3, 2)
+model SupplierStat {
+  supplier_id          String    @id
+  total_contract_value Decimal?
+  total_customers      Int?
+  active_products      Int?
+  total_orders         Int?
+  delivered_orders     Int?
+  cancelled_orders     Int?
+  rating               Decimal?
   last_order_date      DateTime?
   created_at           DateTime  @default(now())
   updated_at           DateTime  @updatedAt
+  supplier             Supplier  @relation(fields: [supplier_id], references: [id])
 
-  // Relations
-  supplier Suppliers @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+  @@map("supplier_stat")
 }
 
-model SupplierBadges {
-  id               Int      @id @default(autoincrement())
-  name             String   @db.VarChar(191)
-  description      String?  @db.Text
-  min_value        Decimal? @db.Decimal(15, 2)
-  max_value        Decimal? @db.Decimal(15, 2)
+model SupplierBadge {
+  id               String     @id @default(uuid())
+  name             String     @db.VarChar(191)
+  description      String?    @db.Text
+  min_value        Decimal?
+  max_value        Decimal?
   visibility_score Int?
+  suppliers        Supplier[]
 
-  // Relations
-  suppliers Suppliers[]
+  @@map("supplier_badge")
 }
 
-// ========== Categories & Brands ==========
-model Categories {
-  id                 Int      @id @default(autoincrement())
-  parent_id          Int?
+// ========== Product & Categories ==========
+
+model Category {
+  id                 String   @id @default(uuid())
+  parent_id          String?  @default(dbgenerated("NULL"))
   sort_id            Int      @default(0)
   name               String   @db.VarChar(191)
-  name_ar            String?  @db.VarChar(191)
-  description        String?  @db.LongText
-  description_ar     String?  @db.LongText
-  synonyms           String   @db.VarChar(191)
-  images_url         String?  @db.VarChar(191)
-  icons_url          String?  @db.VarChar(191)
+  name_ar            String?  @default(dbgenerated("NULL")) @db.VarChar(191)
+  description        String?  @default(dbgenerated("NULL")) @db.LongText
+  description_ar     String?  @default(dbgenerated("NULL")) @db.LongText
+  synonyms           String?  @db.VarChar(191)
+  images_url         String?  @default(dbgenerated("NULL")) @db.VarChar(191)
+  icons_url          String?  @default(dbgenerated("NULL")) @db.VarChar(191)
   is_active          Boolean  @default(true)
-  product_attributes String?  @db.LongText
-  created_at         DateTime @default(now()) @db.DateTime(3)
-  updated_at         DateTime @updatedAt @db.DateTime(3)
+  product_attributes String?  @default(dbgenerated("NULL")) @db.LongText
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 
-  // Relations
-  brands          Brands[]
-  products        Products[]
-  brandCategories BrandCategories[]
+  brandCategories BrandCategory[]
+  products        Product[]
+  brands          Brand[]         @relation("CategoryBrands")
+
+  @@map("category")
 }
 
-model BrandCategories {
-  id          Int      @id @default(autoincrement())
-  brand_id    Int
-  category_id Int
-  created_at  DateTime @default(now()) @db.DateTime(3)
+model BrandCategory {
+  id          String   @id @default(uuid())
+  brand_id    String
+  category_id String
+  created_at  DateTime @default(now())
 
-  // Relations
-  brand    Brands     @relation(fields: [brand_id], references: [id], onDelete: Cascade)
-  category Categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  brand    Brand?    @relation(fields: [brand_id], references: [id])
+  category Category? @relation(fields: [category_id], references: [id])
+
+  @@map("brand_category")
 }
 
-model Brands {
-  id             Int      @id @default(autoincrement())
-  category_id    Int?
+model Brand {
+  id             String   @id @default(uuid())
+  category_id    String?
   name           String   @db.VarChar(191)
-  name_ar        String?  @db.VarChar(191)
-  description    String?  @db.LongText
-  description_ar String?  @db.LongText
-  synonyms       String   @db.VarChar(191)
-  logos_url      String?  @db.VarChar(191)
-  covers_url     String?  @db.VarChar(191)
-  up_to          Int?
+  name_ar        String?  @default(dbgenerated("NULL")) @db.VarChar(191)
+  description    String?  @default(dbgenerated("NULL")) @db.LongText
+  description_ar String?  @default(dbgenerated("NULL")) @db.LongText
+  synonyms       String?  @db.VarChar(191)
+  logos_url      String?  @default(dbgenerated("NULL")) @db.VarChar(191)
+  covers_url     String?  @default(dbgenerated("NULL")) @db.VarChar(191)
+  up_to          Int?     @default(dbgenerated("NULL"))
   is_popular     Boolean  @default(false)
   is_active      Boolean  @default(true)
   is_deleted     Boolean  @default(false)
   sort_id        Int      @default(0)
-  created_at     DateTime @default(now()) @db.DateTime(3)
-  updated_at     DateTime @updatedAt @db.DateTime(3)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
 
-  // Relations
-  category        Categories?       @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  products        Products[]
-  brandCategories BrandCategories[]
+  category        Category?       @relation("CategoryBrands", fields: [category_id], references: [id])
+  brandCategories BrandCategory[]
+  products        Product[]
+
+  @@map("brand")
 }
 
-// ========== Products ==========
-model Products {
-  id                               Int           @id @default(autoincrement())
-  supplier_id                      Int
-  category_id                      Int?
-  brand_id                         Int?
-  unit_types                       Int?
+model Product {
+  id                               String        @id @default(uuid())
+  supplier_id                      String
+  category_id                      String?
+  brand_id                         String?
+  unit_types                       String?
   name                             String        @db.VarChar(191)
   name_ar                          String?       @db.VarChar(191)
-  description                      String?       @db.Text
-  description_ar                   String?       @db.Text
+  description                      String?       @db.VarChar(191)
+  description_ar                   String?       @db.VarChar(191)
   barcode                          String?       @db.VarChar(191)
   images_url                       String?       @db.VarChar(191)
   color                            String?       @db.VarChar(191)
-  price_out_site                   Decimal?      @db.Decimal(10, 2)
+  price_out_site                   Decimal?
   discount_type                    DiscountType?
-  discount_value_total             Decimal?      @db.Decimal(10, 2)
-  discount_value_part_for_customer Decimal?      @db.Decimal(10, 2)
-  discount_value_part_for_company  Decimal?      @db.Decimal(10, 2)
-  discount_value_part_for_offers   Decimal?      @db.Decimal(10, 2)
-  available_amount                 Decimal?      @db.Decimal(10, 2)
-  reserved_in_carts_amount         Decimal?      @db.Decimal(10, 2)
-  ordered_amount                   Decimal?      @db.Decimal(10, 2)
-  is_active                        Boolean       @default(true)
+  discount_value_total             Decimal?
+  discount_value_part_for_customer Decimal?
+  discount_value_part_for_company  Decimal?
+  discount_value_part_for_offers   Decimal?
+  available_amount                 Decimal?
+  reserved_in_carts_amount         Decimal?
+  ordered_amount                   Decimal?
+  is_active                        Boolean?
   synonyms                         String?       @db.VarChar(191)
-  min_discount_rate                Decimal?      @db.Decimal(5, 2)
-  min_amount_for_one_user          Decimal?      @db.Decimal(10, 2)
-  max_amount_for_one_user          Decimal?      @db.Decimal(10, 2)
-  min_amount_for_one_order         Decimal?      @db.Decimal(10, 2)
-  max_amount_for_one_order         Decimal?      @db.Decimal(10, 2)
-  refundable                       Boolean       @default(false)
-  refundable_period                Decimal?      @db.Decimal(5, 2)
+  min_discount_rate                Decimal?
+  min_amount_for_one_user          Decimal?
+  max_amount_for_one_user          Decimal?
+  min_amount_for_one_order         Decimal?
+  max_amount_for_one_order         Decimal?
+  refundable                       Boolean?
+  refundable_period                Decimal?
   refund_policy                    String?       @db.Text
   created_at                       DateTime      @default(now())
   updated_at                       DateTime      @updatedAt
   deleted_at                       DateTime?
 
-  // Relations
-  supplier           Suppliers           @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
-  category           Categories?         @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  brand              Brands?             @relation(fields: [brand_id], references: [id], onDelete: SetNull)
-  unit               ProductUnit?        @relation(fields: [unit_types], references: [id], onDelete: SetNull)
-  attributes         ProductAttributes[]
-  offers             Offers[]
-  supplierActivities SupplierActivity[]
+  supplier   Supplier?          @relation(fields: [supplier_id], references: [id])
+  category   Category?          @relation(fields: [category_id], references: [id])
+  brand      Brand?             @relation(fields: [brand_id], references: [id])
+  unit       ProductUnit?       @relation(fields: [unit_types], references: [id])
+  offers     Offer[]
+  activities SupplierActivity[]
+
+  @@map("product")
 }
 
-model ProductAttributes {
-  id         Int     @id @default(autoincrement())
+model ProductAttribute {
+  id         String  @id @default(uuid())
   key        String  @db.VarChar(191)
   value      String  @db.VarChar(191)
-  product_id Int
+  product_id String  @db.VarChar(191)
   value_ar   String? @db.VarChar(191)
 
-  // Relations
-  product Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
-
-  @@map("productAttributes")
+  @@map("product_attribute")
 }
 
 model ProductUnit {
-  id             Int      @id @default(autoincrement())
-  name           String   @db.VarChar(191)
-  price          Decimal? @db.Decimal(10, 2)
-  description    String?  @db.VarChar(191)
-  description_ar String?  @db.VarChar(191)
+  id             String    @id @default(uuid())
+  name           String    @db.VarChar(191)
+  price          Decimal?
+  description    String?   @db.VarChar(191)
+  description_ar String?   @db.VarChar(191)
+  products       Product[]
 
-  // Relations
-  products Products[]
+  @@map("product_unit")
 }
 
-model Offers {
-  id                       Int      @id @default(autoincrement())
-  product_id               Int
-  target_customer_badge_id Int?
-  offer_type               String?  @db.VarChar(191)
-  offer_value              Decimal? @db.Decimal(10, 2)
-  start_date               DateTime @db.Date
-  end_date                 DateTime @db.Date
-  is_active                Boolean  @default(true)
-  synonyms                 String?  @db.VarChar(191)
-  created_at               DateTime @default(now())
-  updated_at               DateTime @updatedAt
+model Offer {
+  id                       String    @id @default(uuid())
+  product_id               String?
+  target_customer_badge_id String?
+  offer_type               String?   @db.VarChar(191)
+  offer_value              Decimal?
+  start_date               DateTime? @db.Date
+  end_date                 DateTime? @db.Date
+  is_active                Boolean?  @default(true)
+  synonyms                 String?   @db.VarChar(191)
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
 
-  // Relations
-  product Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [product_id], references: [id])
+
+  @@map("offer")
 }
 
-model Contracts {
-  id                 Int            @id @default(autoincrement())
-  supplier_id        Int
-  details            String?        @db.VarChar(191)
-  min_discount_ratio Decimal?       @db.Decimal(5, 2)
-  max_discount_ratio Decimal?       @db.Decimal(5, 2)
-  start_date         DateTime       @db.Date
-  end_date           DateTime       @db.Date
-  status             ContractStatus @default(active)
-  created_at         DateTime       @default(now())
-  updated_at         DateTime       @updatedAt
+model Contract {
+  id                 String          @id @default(uuid())
+  supplier_id        String?
+  details            String?         @db.VarChar(191)
+  min_discount_ratio Decimal?
+  max_discount_ratio Decimal?
+  start_date         DateTime?       @db.Date
+  end_date           DateTime?       @db.Date
+  status             ContractStatus?
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
   deleted_at         DateTime?
+  supplier           Supplier?       @relation(fields: [supplier_id], references: [id])
 
-  // Relations
-  supplier Suppliers @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+  @@map("contract")
 }
