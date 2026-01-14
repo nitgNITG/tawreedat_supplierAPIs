@@ -42,8 +42,8 @@ export const loginSchema = z.object({
 
 export const verifyEmailSchema = z.object({
   email: z.email(),
-  firstOtp: z.string(),
-  secondOtp: z.string().optional(),
+  user_otp: z.string(),
+  // secondOtp: z.string().optional(),
 });
 
 export const updateEmailSchema = z.object({
@@ -65,6 +65,6 @@ export const forgetPasswordSchema = z.object({
 
 export const changePasswordSchema = z.object({
   email: z.email(),
-  otp: z.string(),
+  user_otp: z.string(),
   new_password: z.string(),
 });

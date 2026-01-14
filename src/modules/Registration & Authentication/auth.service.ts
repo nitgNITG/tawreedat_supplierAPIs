@@ -109,8 +109,7 @@ export class AuthService implements IAuthServcie {
     const userVerify = await prisma.userVerify.create({
       data: {
         user_id: user.id,
-        email_otp: await hash(otpCode),
-        email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
+        code: await hash(otpCode),
       },
     });
     const supplier = await prisma.supplier.create({
@@ -219,7 +218,7 @@ export class AuthService implements IAuthServcie {
 
   // ============================ verifyEmail ============================
   verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
-    const { email, firstOtp, secondOtp }: verifyEmaiDTO = req.body;
+    const { email, user_otp }: verifyEmaiDTO = req.body;
     // step: check user and userVerify exitance
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -234,65 +233,40 @@ export class AuthService implements IAuthServcie {
         "UserVerify of user not found"
       );
     }
-    // step: check email_otp
-    if (
-      !userVerify.email_otp ||
-      !(await compare(firstOtp, userVerify.email_otp))
-    ) {
+    // step: check user_otp
+    if (!userVerify.code || !(await compare(user_otp, userVerify.code))) {
       throw new AppError(HttpStatusCode.UNAUTHORIZED, "Invalid otp");
     }
-    if (
-      userVerify.email_otp_expired_at &&
-      userVerify.email_otp_expired_at < new Date(Date.now())
-    ) {
+    // step: check if otp expired
+    const otpTime = userVerify.updated_at ?? userVerify.created_at;
+    if (otpTime.getTime() + 5 * 60 * 1000 < Date.now()) {
       throw new AppError(HttpStatusCode.BAD_REQUEST, "otp expired");
     }
-    // step: case 1 email not confrimed (confirm first email)
+    // step: check email confirmation
     if (!user.is_confirmed) {
-      // step: confirm email
+      // step: case 1 user confirm main email
       const updatedUser = await prisma.user.update({
         where: { email },
         data: { is_confirmed: true },
       });
       return responseHandler({ res, message: "Email confirmed successfully" });
+    } else {
+      // step: case 2 main email already confirmed and user confirm new email
+      if (!userVerify.email) {
+        throw new AppError(
+          HttpStatusCode.BAD_REQUEST,
+          "No new email to confirm"
+        );
+      }
+      const updatedUser = await prisma.user.update({
+        where: { email },
+        data: { email: userVerify.email },
+      });
+      return responseHandler({
+        res,
+        message: "New email confirmed successfully",
+      });
     }
-    // step: case 2 email confrimed (confirm first and second email)
-    // step: check secondOtp existence
-    if (!secondOtp) {
-      throw new AppError(
-        HttpStatusCode.BAD_REQUEST,
-        "Email already confirmed, if you want to update email please send firstOtp and secondOtp"
-      );
-    }
-    // step: check new_email_otp
-    if (
-      !userVerify.new_email_otp ||
-      !(await compare(secondOtp, userVerify.new_email_otp))
-    ) {
-      throw new AppError(
-        HttpStatusCode.BAD_REQUEST,
-        "Invalid otp for second email"
-      );
-    }
-    if (
-      userVerify.new_email_otp_expired_at &&
-      userVerify.new_email_otp_expired_at < new Date(Date.now())
-    ) {
-      throw new AppError(
-        HttpStatusCode.BAD_REQUEST,
-        "otp expired for second email"
-      );
-    }
-    // step: confirm email
-    const newEmail = userVerify.new_email;
-    const updatedUser = await prisma.user.update({
-      where: { email },
-      data: { email: newEmail as string },
-    });
-    return responseHandler({
-      res,
-      message: "New email confirmed successfully",
-    });
   };
 
   // ============================ updateEmail ============================
@@ -323,39 +297,31 @@ export class AuthService implements IAuthServcie {
         "Error while checking email"
       );
     }
-    // step: send otp to new email
-    const otpCodeForNewEmail = createOtp();
-    const resultOfSendEmail = await sendEmail({
-      to: new_email,
-      subject: "TawreedatApp",
-      html: template({
-        otpCode: otpCodeForNewEmail,
-        receiverName: user.full_name,
-        subject: "Confirm new email",
-      }),
-    });
-    if (!resultOfSendEmail.isEmailSended) {
-      throw new AppError(
-        HttpStatusCode.BAD_REQUEST,
-        "Error while checking email"
-      );
-    }
-    // step: save email_otp, new_email and new_email_otp
-    const updatedUserVerify = await prisma.userVerify.update({
+    // step: save otp and new_email
+    const isUserVerifyExist = await prisma.userVerify.findFirst({
       where: { user_id: user.id },
-      data: {
-        email_otp: await hash(otpCodeForCurrentEmail),
-        email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
-        new_email: new_email,
-        new_email_otp: await hash(otpCodeForNewEmail),
-        new_email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
-      },
     });
-
+    let updatedUserVerify = null;
+    if (isUserVerifyExist) {
+      updatedUserVerify = await prisma.userVerify.update({
+        where: { user_id: user.id },
+        data: {
+          code: await hash(otpCodeForCurrentEmail),
+          email: new_email,
+        },
+      });
+    } else {
+      updatedUserVerify = await prisma.userVerify.create({
+        data: {
+          user_id: user.id,
+          email: new_email,
+          code: await hash(otpCodeForCurrentEmail),
+        },
+      });
+    }
     return responseHandler({
       res,
-      message:
-        "OTP sended for current email and new email, please confirm new email to save updates",
+      message: "OTP sended for current email successfully",
     });
   };
 
@@ -377,11 +343,9 @@ export class AuthService implements IAuthServcie {
         "UserVerify of user not found"
       );
     }
-    // step: check if email otp not expired yet
-    if (
-      userVerify?.email_otp_expired_at &&
-      userVerify?.email_otp_expired_at > new Date(Date.now())
-    ) {
+    // step: check if otp not expired yet
+    const otpTime = userVerify.updated_at ?? userVerify.created_at;
+    if (otpTime.getTime() + 5 * 60 * 1000 > Date.now()) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
         "Your OTP not expired yet"
@@ -408,8 +372,7 @@ export class AuthService implements IAuthServcie {
     const updatedUserVerify = await prisma.userVerify.update({
       where: { user_id: user.id },
       data: {
-        email_otp: await hash(otpCode),
-        email_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
+        code: await hash(otpCode),
       },
     });
     return responseHandler({ res, message: "OTP sended successfully" });
@@ -462,11 +425,9 @@ export class AuthService implements IAuthServcie {
         "UserVerify of user not found"
       );
     }
-    // step: check if password otp not expired yet
-    if (
-      userVerify.password_otp_expired_at &&
-      userVerify.password_otp_expired_at > new Date(Date.now())
-    ) {
+    // step: check if otp not expired yet
+    const otpTime = userVerify.updated_at ?? userVerify.created_at;
+    if (otpTime.getTime() + 5 * 60 * 1000 > Date.now()) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
         "Your OTP not expired yet"
@@ -493,8 +454,7 @@ export class AuthService implements IAuthServcie {
     const updatedUserVerify = await prisma.userVerify.update({
       where: { user_id: user.id },
       data: {
-        password_otp: await hash(otpCode),
-        password_otp_expired_at: new Date(Date.now() + 5 * 60 * 1000),
+        code: await hash(otpCode),
       },
     });
     return responseHandler({
@@ -505,7 +465,7 @@ export class AuthService implements IAuthServcie {
 
   // ============================ changePassword ============================
   changePassword = async (req: Request, res: Response, next: NextFunction) => {
-    const { email, otp, new_password }: changePasswordDTO = req.body;
+    const { email, user_otp, new_password }: changePasswordDTO = req.body;
     // step: check email existence
     const isUserExist = await prisma.user.findUnique({ where: { email } });
     if (!isUserExist) {
@@ -521,9 +481,14 @@ export class AuthService implements IAuthServcie {
         "UserVerify of user not found"
       );
     }
-    // step: check otp
-    if (!(await compare(otp, userVerify.password_otp as string))) {
-      throw new AppError(HttpStatusCode.BAD_REQUEST, "Invalid OTP");
+    // step: check user_otp
+    if (!userVerify.code || !(await compare(user_otp, userVerify.code))) {
+      throw new AppError(HttpStatusCode.UNAUTHORIZED, "Invalid otp");
+    }
+    // step: check if otp expired
+    const otpTime = userVerify.updated_at ?? userVerify.created_at;
+    if (otpTime.getTime() + 5 * 60 * 1000 < Date.now()) {
+      throw new AppError(HttpStatusCode.BAD_REQUEST, "otp expired");
     }
     // step: change password
     const updatedUser = await prisma.user.update({

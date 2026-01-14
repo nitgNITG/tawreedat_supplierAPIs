@@ -45,8 +45,8 @@ exports.loginSchema = zod_1.default.object({
 });
 exports.verifyEmailSchema = zod_1.default.object({
     email: zod_1.default.email(),
-    firstOtp: zod_1.default.string(),
-    secondOtp: zod_1.default.string().optional(),
+    user_otp: zod_1.default.string(),
+    // secondOtp: z.string().optional(),
 });
 exports.updateEmailSchema = zod_1.default.object({
     new_email: zod_1.default.email(),
@@ -63,6 +63,6 @@ exports.forgetPasswordSchema = zod_1.default.object({
 });
 exports.changePasswordSchema = zod_1.default.object({
     email: zod_1.default.email(),
-    otp: zod_1.default.string(),
+    user_otp: zod_1.default.string(),
     new_password: zod_1.default.string(),
 });
