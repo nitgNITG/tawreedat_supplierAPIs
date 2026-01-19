@@ -41,12 +41,7 @@ class AuthService {
             where: { name: "Supplier" },
         });
         if (!role) {
-            role = await prisma_1.prisma.userRole.create({
-                data: {
-                    name: "Supplier",
-                    description: "Supplier role description",
-                },
-            });
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "No supplier role with name Supplier");
         }
         // step: get or create SupplierType
         let supplierType = await prisma_1.prisma.supplierType.findFirst();
@@ -67,11 +62,10 @@ class AuthService {
                 phone: phone ?? null,
                 password: await (0, bcrypt_1.hash)(password),
                 image_url: image_url ?? null,
-                lang: lang ?? null,
                 birth_date: birth_date ? new Date(birth_date) : null,
                 gender: gender ?? global_types_1.GenderEnum.MALE,
-                login_type: login_type ?? null,
                 apple_id: apple_id ?? null,
+                is_confirmed: false,
             },
         });
         const userVerify = await prisma_1.prisma.userVerify.create({
@@ -105,7 +99,7 @@ class AuthService {
         return (0, response_handler_1.responseHandler)({
             res,
             message: "User created successfully",
-            data: { accessToken, refreshToken },
+            data: { accessToken, refreshToken, user },
             status: 201,
         });
     };
@@ -113,7 +107,10 @@ class AuthService {
     login = async (req, res, next) => {
         const { email, password } = req.body;
         // step: check credentials
-        const user = await prisma_1.prisma.user.findUnique({ where: { email } });
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { email },
+            include: { role: true },
+        });
         if (!user || !(await (0, bcrypt_1.compare)(password, user.password))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
         }
@@ -128,8 +125,8 @@ class AuthService {
         });
         return (0, response_handler_1.responseHandler)({
             res,
-            message: "Loggedin successfully",
-            data: { accessToken, refreshToken },
+            message: "تم تسجيل الدخول بنجاح",
+            data: { accessToken, refreshToken, user },
         });
     };
     // ============================ refresh-token ============================
@@ -233,7 +230,7 @@ class AuthService {
         let updatedUserVerify = null;
         if (isUserVerifyExist) {
             updatedUserVerify = await prisma_1.prisma.userVerify.update({
-                where: { user_id: user.id },
+                where: { id: isUserVerifyExist.id },
                 data: {
                     code: await (0, bcrypt_1.hash)(otpCodeForCurrentEmail),
                     email: new_email,
@@ -290,7 +287,7 @@ class AuthService {
         }
         // step: update email_otp
         const updatedUserVerify = await prisma_1.prisma.userVerify.update({
-            where: { user_id: user.id },
+            where: { id: userVerify.id },
             data: {
                 code: await (0, bcrypt_1.hash)(otpCode),
             },
@@ -331,7 +328,7 @@ class AuthService {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
         }
         const user = isUserExist;
-        const userVerify = await prisma_1.prisma.userVerify.findUnique({
+        const userVerify = await prisma_1.prisma.userVerify.findFirst({
             where: { user_id: user.id },
         });
         if (!userVerify) {
@@ -345,7 +342,7 @@ class AuthService {
         // step: send email otp
         const otpCode = (0, createOtp_1.createOtp)();
         const { isEmailSended, info } = await (0, send_email_1.sendEmail)({
-            to: user.email,
+            to: user?.email,
             subject: "Reset password OTP",
             html: (0, generateHTML_1.template)({
                 otpCode,
@@ -358,7 +355,7 @@ class AuthService {
         }
         // step: update password_otp
         const updatedUserVerify = await prisma_1.prisma.userVerify.update({
-            where: { user_id: user.id },
+            where: { id: userVerify.id },
             data: {
                 code: await (0, bcrypt_1.hash)(otpCode),
             },
@@ -377,7 +374,7 @@ class AuthService {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
         }
         const user = isUserExist;
-        const userVerify = await prisma_1.prisma.userVerify.findUnique({
+        const userVerify = await prisma_1.prisma.userVerify.findFirst({
             where: { user_id: user.id },
         });
         if (!userVerify) {

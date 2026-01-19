@@ -1,6 +1,6 @@
 export enum GenderEnum {
-  MALE = "male",
-  FEMALE = "female",
+  MALE = "MALE",
+  FEMALE = "FEMALE",
 }
 
 export enum StoreInEnum {

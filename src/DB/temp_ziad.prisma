@@ -1,0 +1,734 @@
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "mysql"
+//   url      = env("DATABASE_URL")
+// }
+
+// model User {
+//   id                    String         @id @default(uuid())
+//   email                 String?        @unique @db.VarChar(70)
+//   phone                 String?        @unique @db.VarChar(20)
+//   password              String?        @db.VarChar(100)
+//   lang                  Language       @default(AR)
+//   apple_id              String?
+//   birth_date            DateTime?
+//   created_at            DateTime?      @default(now())
+//   deleted_at            DateTime?
+//   fcm_token             String?
+//   full_name             String
+//   image_url             String?
+//   is_confirmed          Boolean?       @default(true)
+//   last_login_at         String?
+//   login_type            LoginType      @default(LOCAL)
+//   password_last_updated DateTime?
+//   role_id               String
+//   updated_at            DateTime?      @updatedAt
+//   is_Active             Boolean?       @default(true)
+//   gender                Gender         @default(MALE)
+//   UserAddress           UserAddress[]
+//   cartItems             CartItem[]
+//   orders                Order[]
+//   requestedRefunds      Refund[]       @relation("RefundRequestedBy")
+//   reviewedRefunds       Refund[]       @relation("RefundReviewedBy")
+//   reviews               Review[]
+//   role                  UserRole       @relation(fields: [role_id], references: [id])
+//   UserVerify            UserVerify[]
+//   wallet                Wallet?
+//   wishlist              WishlistItem[]
+
+//   @@index([role_id], map: "user_role_id_fkey")
+//   @@map("user")
+// }
+
+// model UserRole {
+//   id          String    @id @default(uuid())
+//   name        String    @unique
+//   description String?
+//   created_at  DateTime  @default(now())
+//   updated_at  DateTime  @updatedAt
+//   deleted_at  DateTime?
+//   users       User[]
+
+//   @@map("user_role")
+// }
+
+// model UserVerify {
+//   id         Int      @id @default(autoincrement())
+//   user_id    String
+//   code       String   @unique
+//   phone      String?
+//   email      String?
+//   created_at DateTime @default(now())
+//   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+//   @@index([user_id], map: "UserVerify_user_id_fkey")
+//   @@map("user_verify")
+// }
+
+// model Wallet {
+//   id              Int       @id @default(autoincrement())
+//   points          Int       @default(0)
+//   user_id         String    @unique
+//   last_checked_at DateTime?
+//   created_at      DateTime  @default(now())
+//   updated_at      DateTime  @updatedAt
+//   total_spent     Float?    @default(0)
+//   user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+//   @@map("wallet")
+// }
+
+// model UserAddress {
+//   id          Int      @id @default(autoincrement())
+//   address     String
+//   lat         String
+//   long        String
+//   userId      String
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   city        String?
+//   country     String?
+//   isDefault   Boolean  @default(false)
+//   name        String
+//   notes       String?
+//   postalCode  String?
+//   state       String?
+//   apartmentNo String?
+//   buildingNo  String?
+//   floorNo     String?
+//   User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@index([userId], map: "Address_userId_fkey")
+// }
+
+// model Faq {
+//   id         Int       @id @default(autoincrement())
+//   question   String
+//   answer     String
+//   language   Language? @default(EN)
+//   created_at DateTime  @default(now())
+//   updated_at DateTime  @updatedAt
+//   is_active  Boolean   @default(true)
+//   sort_id    Int       @default(0)
+
+//   @@index([sort_id])
+//   @@map("faq")
+// }
+
+// model Category {
+//   id                 Int             @id @default(autoincrement())
+//   name               String          @unique
+//   name_ar            String?
+//   description        String?         @db.LongText
+//   description_ar     String?         @db.LongText
+//   image_url          String?
+//   icon_url           String?
+//   parent_id          Int?
+//   is_active          Boolean
+//   product_attributes String?         @db.LongText
+//   created_at         DateTime        @default(now())
+//   updated_at         DateTime        @updatedAt
+//   sort_id            Int             @default(0)
+//   deleted_at         DateTime?
+//   slug               String?         @unique
+//   synonyms           String?
+//   brands             BrandCategory[]
+//   parent             Category?       @relation("CategoryHierarchy", fields: [parent_id], references: [id])
+//   children           Category[]      @relation("CategoryHierarchy")
+//   products           Product[]
+
+//   @@index([sort_id], map: "categories_sortId_idx")
+//   @@index([parent_id])
+//   @@fulltext([name, name_ar, description, description_ar], map: "categories_name_nameAr_description_descriptionAr_idx")
+//   @@map("category")
+// }
+
+// model Brand {
+//   id             Int             @id @default(autoincrement())
+//   name           String          @unique
+//   slug           String          @unique
+//   name_ar        String?
+//   logo_url       String?
+//   cover_url      String?
+//   is_active      Boolean         @default(true)
+//   is_popular     Boolean         @default(false)
+//   created_at     DateTime        @default(now())
+//   updated_at     DateTime        @updatedAt
+//   description    String?         @db.LongText
+//   description_ar String?         @db.LongText
+//   up_to          Int?
+//   sort_id        Int             @default(0)
+//   deleted_at     DateTime?
+//   synonyms       String?
+//   categories     BrandCategory[]
+//   products       Product[]
+
+//   @@index([sort_id])
+//   @@fulltext([name, name_ar, synonyms, description, description_ar])
+//   @@map("brand")
+// }
+
+// model BrandCategory {
+//   id          Int      @id @default(autoincrement())
+//   brand_id    Int
+//   category_id Int
+//   created_at  DateTime @default(now())
+//   brand       Brand    @relation(fields: [brand_id], references: [id], onDelete: Cascade)
+//   category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+//   @@unique([brand_id, category_id])
+//   @@index([category_id], map: "brand_categories_categoryId_fkey")
+//   @@map("brand_category")
+// }
+
+// model Product {
+//   id                               String             @id @default(uuid())
+//   name                             String
+//   name_ar                          String?
+//   description                      String?            @db.LongText
+//   description_ar                   String?            @db.LongText
+//   price                            Float
+//   cost_price                       Float?
+//   stock                            Int                @default(0)
+//   min_stock                        Int                @default(5)
+//   sku                              String             @unique
+//   barcode                          String?            @unique
+//   images                           String?            @db.LongText
+//   weight                           Float?
+//   dimensions                       String?
+//   is_active                        Boolean            @default(true)
+//   is_featured                      Boolean            @default(false)
+//   offer                            Float?
+//   category_id                      Int
+//   supplier_id                      String?
+//   brand_id                         Int?
+//   created_at                       DateTime           @default(now())
+//   updated_at                       DateTime           @updatedAt
+//   rating                           Float?             @default(0)
+//   total_reviews                    Int                @default(0)
+//   offer_valid_from                 DateTime?
+//   offer_valid_to                   DateTime?
+//   is_best_seller                   Boolean            @default(false)
+//   sort_id                          Int                @default(0)
+//   available_amount                 Decimal?
+//   color                            String?
+//   deleted_at                       DateTime?
+//   discount_type                    DiscountType?
+//   discount_value_part_for_company  Decimal?
+//   discount_value_part_for_customer Decimal?
+//   discount_value_part_for_offers   Decimal?
+//   discount_value_total             Decimal?
+//   max_amount_for_one_order         Decimal?
+//   max_amount_for_one_user          Decimal?
+//   min_amount_for_one_order         Decimal?
+//   min_amount_for_one_user          Decimal?
+//   min_discount_rate                Decimal?
+//   ordered_amount                   Decimal?
+//   price_out_site                   Decimal?
+//   refund_policy                    String?            @db.Text
+//   refundable                       Boolean?
+//   refundable_period                Decimal?
+//   reserved_in_carts_amount         Decimal?
+//   slug                             String?            @unique
+//   synonyms                         String?
+//   unit_type                        Int?
+//   cartItems                        CartItem[]
+//   orderItems                       OrderItem[]
+//   brand                            Brand?             @relation(fields: [brand_id], references: [id])
+//   category                         Category           @relation(fields: [category_id], references: [id])
+//   supplier                         Supplier?          @relation(fields: [supplier_id], references: [id])
+//   unit                             ProductUnit?       @relation(fields: [unit_type], references: [id])
+//   attributes                       ProductAttribute[]
+//   reviews                          Review[]
+//   wishlist                         WishlistItem[]
+
+//   @@index([sort_id])
+//   @@index([brand_id])
+//   @@index([category_id])
+//   @@index([supplier_id])
+//   @@index([unit_type], map: "product_unit_type_fkey")
+//   @@fulltext([name, name_ar, description, description_ar])
+//   @@map("product")
+// }
+
+// model ProductAttribute {
+//   id         Int     @id @default(autoincrement())
+//   key        String
+//   value      String
+//   product_id String
+//   value_ar   String?
+//   product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+//   @@unique([product_id, key])
+//   @@index([product_id], map: "product_attribute_product_id_fkey")
+//   @@map("product_attribute")
+// }
+
+// model ProductUnit {
+//   id             Int       @id @default(autoincrement())
+//   name           String?
+//   price          Decimal?
+//   description    String?
+//   description_ar String?
+//   products       Product[]
+
+//   @@map("product_unit")
+// }
+
+// model Supplier {
+//   id            String    @id @default(uuid())
+//   name          String
+//   nameAr        String?
+//   email         String?   @unique
+//   phone         String?
+//   address       String?
+//   city          String?
+//   governorate   String?
+//   contactPerson String?
+//   isActive      Boolean   @default(true)
+//   createdAt     DateTime  @default(now())
+//   updatedAt     DateTime  @updatedAt
+//   products      Product[]
+
+//   @@map("suppliers")
+// }
+
+// model Order {
+//   id              Int              @id @default(autoincrement())
+//   orderNumber     String           @unique
+//   customerId      String
+//   totalAmount     Float
+//   shippingCost    Float            @default(0)
+//   discount        Float            @default(0)
+//   taxAmount       Float            @default(0)
+//   status          OrderStatus      @default(PENDING)
+//   paymentMethod   PaymentMethod    @default(CASH_ON_DELIVERY)
+//   paymentStatus   PaymentStatus    @default(PENDING)
+//   shippingAddress String           @db.LongText
+//   notes           String?
+//   createdAt       DateTime         @default(now())
+//   updatedAt       DateTime         @updatedAt
+//   paymentId       String?
+//   userAddressId   Int?
+//   refundedAmount  Float            @default(0)
+//   paymentAttempts PaymentAttempt[]
+//   items           OrderItem[]
+//   customer        User             @relation(fields: [customerId], references: [id])
+//   refunds         Refund[]
+
+//   @@index([customerId], map: "orders_customerId_fkey")
+//   @@map("orders")
+// }
+
+// model PaymentAttempt {
+//   id          Int           @id @default(autoincrement())
+//   orderId     Int
+//   provider    String
+//   intentionId String?
+//   status      PaymentStatus @default(PENDING)
+//   rawResponse String?       @db.LongText
+//   createdAt   DateTime      @default(now())
+//   order       Order         @relation(fields: [orderId], references: [id])
+//   refunds     Refund[]
+
+//   @@index([orderId])
+//   @@index([intentionId])
+// }
+
+// model OrderItem {
+//   id          Int          @id @default(autoincrement())
+//   orderId     Int
+//   productId   String
+//   quantity    Int
+//   price       Float
+//   createdAt   DateTime     @default(now())
+//   order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+//   product     Product      @relation(fields: [productId], references: [id])
+//   refundItems RefundItem[]
+
+//   @@index([orderId], map: "order_items_orderId_fkey")
+//   @@index([productId], map: "order_items_productId_fkey")
+//   @@map("order_items")
+// }
+
+// model Refund {
+//   id               Int             @id @default(autoincrement())
+//   orderId          Int
+//   paymentAttemptId Int?
+//   amount           Float
+//   currency         String          @default("EGP")
+//   reason           String?
+//   status           RefundStatus    @default(REQUESTED)
+//   provider         String?
+//   providerRefundId String?
+//   rawResponse      String?         @db.LongText
+//   requestedById    String?
+//   reviewedById     String?
+//   reviewedAt       DateTime?
+//   createdAt        DateTime        @default(now())
+//   updatedAt        DateTime        @updatedAt
+//   items            RefundItem[]
+//   order            Order           @relation(fields: [orderId], references: [id])
+//   paymentAttempt   PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id])
+//   requestedBy      User?           @relation("RefundRequestedBy", fields: [requestedById], references: [id])
+//   reviewedBy       User?           @relation("RefundReviewedBy", fields: [reviewedById], references: [id])
+
+//   @@index([orderId])
+//   @@index([providerRefundId])
+//   @@index([requestedById])
+//   @@index([reviewedById])
+//   @@index([paymentAttemptId], map: "refunds_paymentAttemptId_fkey")
+//   @@map("refunds")
+// }
+
+// model RefundItem {
+//   id          Int       @id @default(autoincrement())
+//   refundId    Int
+//   orderItemId Int
+//   quantity    Int
+//   amount      Float
+//   orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+//   refund      Refund    @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+//   @@unique([refundId, orderItemId])
+//   @@index([orderItemId], map: "refund_items_orderItemId_fkey")
+//   @@map("refund_items")
+// }
+
+// model CartItem {
+//   id        String   @id @default(uuid())
+//   userId    String
+//   productId String
+//   quantity  Int
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, productId])
+//   @@index([productId], map: "cart_items_productId_fkey")
+//   @@map("cart_items")
+// }
+
+// model Review {
+//   id        String       @id @default(uuid())
+//   userId    String
+//   productId String
+//   rating    Float
+//   comment   String?      @db.LongText
+//   createdAt DateTime     @default(now())
+//   updatedAt DateTime     @updatedAt
+//   status    ReviewStatus @default(PENDING)
+//   product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, productId])
+//   @@index([productId])
+//   @@index([userId])
+//   @@map("reviews")
+// }
+
+// model WishlistItem {
+//   id        String   @id @default(uuid())
+//   userId    String
+//   productId String
+//   createdAt DateTime @default(now())
+//   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, productId])
+//   @@index([productId], map: "wishlist_items_productId_fkey")
+//   @@map("wishlist_items")
+// }
+
+// model Ad {
+//   id              Int           @id @default(autoincrement())
+//   title           String
+//   titleAr         String?
+//   description     String?       @db.LongText
+//   descriptionAr   String?       @db.LongText
+//   imageUrl        String
+//   targetUrl       String?
+//   startDate       DateTime
+//   endDate         DateTime
+//   budget          Float         @default(0)
+//   priority        Int
+//   status          AdsStatus     @default(Active)
+//   placement       AdsPlacement? @default(Top)
+//   adType          AdsType       @default(Home)
+//   popupSize       AdsPopupSize? @default(Medium)
+//   frequency       AdsFrequency? @default(Once)
+//   timing          Int           @default(0)
+//   closable        Boolean?      @default(true)
+//   displayDuration Int           @default(24)
+//   createdAt       DateTime      @default(now())
+//   updatedAt       DateTime      @updatedAt
+//   mobileScreen    String?       @db.LongText
+//   sortId          Int           @default(0)
+
+//   @@index([sortId])
+//   @@map("Ads")
+// }
+
+// model AboutApp {
+//   id                String   @id @default(uuid())
+//   terms             String?  @db.Text
+//   terms_ar          String?  @db.Text
+//   about             String?  @db.Text
+//   about_ar          String?  @db.Text
+//   privacy_policy    String?  @db.Text
+//   privacy_policy_ar String?  @db.Text
+//   mission           String?  @db.Text
+//   mission_ar        String?  @db.Text
+//   vision            String?  @db.Text
+//   vision_ar         String?  @db.Text
+//   digital_card      String?  @db.Text
+//   digital_card_ar   String?  @db.Text
+//   phone             String?
+//   email             String?
+//   facebook          String?  @db.VarChar(200)
+//   instagram         String?  @db.VarChar(200)
+//   linkedin          String?  @db.VarChar(200)
+//   pinterest         String?  @db.VarChar(200)
+//   reddit            String?  @db.VarChar(200)
+//   snapchat          String?  @db.VarChar(200)
+//   telegram          String?  @db.VarChar(200)
+//   tiktok            String?  @db.VarChar(200)
+//   twitter           String?  @db.VarChar(200)
+//   whatsapp          String?  @db.VarChar(200)
+//   youtube           String?  @db.VarChar(200)
+//   created_at        DateTime @default(now())
+//   updated_at        DateTime @updatedAt
+
+//   @@map("about_app")
+// }
+
+// model ApplicationSetting {
+//   id                                      String   @id
+//   number_of_products_on_homepage          Int      @default(3)
+//   number_of_categories_on_homepage        Int      @default(3)
+//   number_of_featured_products_on_homepage Int      @default(10)
+//   number_of_latest_offers_on_homepage     Int      @default(3)
+//   number_of_new_arrivals_on_homepage      Int      @default(3)
+//   vat                                     Float    @default(5)
+//   last_attempt                            DateTime @default(now())
+//   login_attempt_duration_minutes          Int?     @default(20) @db.SmallInt
+//   login_attempts                          Int?     @default(5) @db.SmallInt
+//   created_at                              DateTime @default(now())
+//   updated_at                              DateTime @updatedAt
+//   login_as_guest                          Boolean  @default(false)
+//   permanent_delete                        Boolean  @default(false)
+//   number_of_ads_on_homepage               Int      @default(3)
+//   number_of_brands_on_homepage            Int      @default(3)
+//   app_android_url                         String?
+//   app_android_version                     String?
+//   app_ios_url                             String?
+//   app_ios_version                         String?
+//   paymob_api_key                          String?  @db.LongText
+//   paymob_base_url                         String?
+//   paymob_payment_methods                  String?
+//   paymob_public_key                       String?
+//   paymob_secret_key                       String?
+//   payment_attempts                        Int?     @default(5) @db.SmallInt
+//   paymob_iframes                          String?
+
+//   @@map("application_setting")
+// }
+
+// model OnBoarding {
+//   id          Int       @id @default(autoincrement())
+//   image_url   String?
+//   title       String
+//   title_ar    String?
+//   content     String?
+//   content_ar  String?
+//   subtitle    String?
+//   subtitle_ar String?
+//   sort_id     Int       @default(0)
+//   created_at  DateTime  @default(now())
+//   updated_at  DateTime  @updatedAt
+//   deleted_at  DateTime?
+
+//   @@index([sort_id])
+//   @@map("on_boarding")
+// }
+
+// model ContactUs {
+//   id         Int       @id @default(autoincrement())
+//   name       String
+//   email      String
+//   message    String    @db.Text
+//   response   String?   @db.Text
+//   created_at DateTime  @default(now())
+//   updated_at DateTime  @updatedAt
+//   read_at    DateTime?
+//   read       Boolean   @default(false)
+
+//   @@map("contact_us")
+// }
+
+// model Article {
+//   id           Int      @id @default(autoincrement())
+//   title        String   @db.VarChar(255)
+//   slug         String   @unique @db.VarChar(255)
+//   summary      String?  @db.VarChar(500)
+//   content      String   @db.Text
+//   cover_image  String?
+//   keywords     String?  @db.VarChar(255)
+//   published_at DateTime
+//   created_at   DateTime @default(now())
+//   updated_at   DateTime @updatedAt
+//   author       String   @db.VarChar(255)
+//   is_active    Boolean  @default(true)
+//   sort_id      Int      @default(0)
+
+//   @@index([sort_id])
+//   @@map("article")
+// }
+
+// model Color {
+//   id   String @id
+//   name String @db.VarChar(100)
+//   code String @db.VarChar(7)
+
+//   @@map("Colors")
+// }
+
+// model Country {
+//   id        String   @id
+//   name      String   @db.VarChar(100)
+//   code      String   @db.VarChar(3)
+//   phoneCode String   @db.VarChar(5)
+//   regions   Region[]
+
+//   @@map("Countries")
+// }
+
+// model Region {
+//   id        Int             @id @default(autoincrement())
+//   name      String          @unique @db.VarChar(100)
+//   countryId String?
+//   country   Country?        @relation(fields: [countryId], references: [id], onDelete: Cascade)
+//   prices    ShippingPrice[]
+
+//   @@index([countryId], map: "Region_countryId_fkey")
+//   @@map("Regions")
+// }
+
+// model ShippingMethod {
+//   id        Int             @id @default(autoincrement())
+//   name      String          @unique @db.VarChar(100)
+//   createdAt DateTime        @default(now())
+//   updatedAt DateTime        @updatedAt
+//   prices    ShippingPrice[]
+// }
+
+// model ShippingPrice {
+//   id                    Int            @id @default(autoincrement())
+//   regionId              Int
+//   methodId              Int
+//   basePrice             Float
+//   additionalWeightPrice Float
+//   estimatedDeliveryDays Int
+//   createdAt             DateTime       @default(now())
+//   updatedAt             DateTime       @updatedAt
+//   method                ShippingMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+//   region                Region         @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+//   @@unique([regionId, methodId])
+//   @@index([methodId], map: "ShippingPrices_methodId_fkey")
+//   @@map("ShippingPrices")
+// }
+
+// enum DiscountType {
+//   PERCENT
+//   FIXED
+// }
+
+// enum Gender {
+//   MALE
+//   FEMALE
+// }
+
+// enum OrderStatus {
+//   PENDING
+//   CONFIRMED
+//   PROCESSING
+//   SHIPPED
+//   DELIVERED
+//   CANCELLED
+// }
+
+// enum PaymentMethod {
+//   CREDIT_CARD
+//   PAYPAL
+//   BANK_TRANSFER
+//   CASH_ON_DELIVERY
+// }
+
+// enum PaymentStatus {
+//   PENDING
+//   PAID
+//   PARTIALLY_REFUNDED
+//   REFUNDED
+//   FAILED
+// }
+
+// enum RefundStatus {
+//   REQUESTED
+//   APPROVED
+//   REJECTED
+//   PROCESSING
+//   COMPLETED
+//   FAILED
+//   CANCELLED
+// }
+
+// enum Language {
+//   EN
+//   AR
+// }
+
+// enum LoginType {
+//   LOCAL
+//   GOOGLE
+//   FACEBOOK
+//   APPLE
+// }
+
+// enum ReviewStatus {
+//   PENDING
+//   APPROVED
+//   REJECTED
+// }
+
+// enum AdsPopupSize {
+//   Small
+//   Medium
+//   Large
+// }
+
+// enum AdsFrequency {
+//   Once
+//   Daily
+//   PerSession
+// }
+
+// enum AdsStatus {
+//   Active
+//   Inactive
+// }
+
+// enum AdsType {
+//   Home
+//   Popup
+// }
+
+// enum AdsPlacement {
+//   Top
+//   Middle
+//   Bottom
+// }

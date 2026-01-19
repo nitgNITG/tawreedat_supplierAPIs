@@ -21,7 +21,6 @@ import { responseHandler } from "../../core/handlers/response.handler";
 import { HttpStatusCode } from "../../core/http/http.status.code";
 import { prisma } from "../../DB/lib/prisma";
 import { GenderEnum } from "../../types/global.types";
-
 export class AuthService implements IAuthServcie {
   constructor() {}
 
@@ -63,7 +62,7 @@ export class AuthService implements IAuthServcie {
     if (!isEmailSended) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Error while sending email"
+        "Error while sending email",
       );
     }
     // step: get or create UserRole
@@ -72,12 +71,10 @@ export class AuthService implements IAuthServcie {
     });
 
     if (!role) {
-      role = await prisma.userRole.create({
-        data: {
-          name: "Supplier",
-          description: "Supplier role description",
-        },
-      });
+      throw new AppError(
+        HttpStatusCode.BAD_REQUEST,
+        "No supplier role with name Supplier",
+      );
     }
     // step: get or create SupplierType
     let supplierType = await prisma.supplierType.findFirst();
@@ -99,11 +96,10 @@ export class AuthService implements IAuthServcie {
         phone: phone ?? null,
         password: await hash(password),
         image_url: image_url ?? null,
-        lang: lang ?? null,
         birth_date: birth_date ? new Date(birth_date) : null,
         gender: gender ?? GenderEnum.MALE,
-        login_type: login_type ?? null,
         apple_id: apple_id ?? null,
+        is_confirmed: false,
       },
     });
     const userVerify = await prisma.userVerify.create({
@@ -126,7 +122,7 @@ export class AuthService implements IAuthServcie {
     if (!user || !supplier) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
-        "Creation failed"
+        "Creation failed",
       );
     }
     // step: create token
@@ -136,7 +132,7 @@ export class AuthService implements IAuthServcie {
       {
         expiresIn: "1h",
         jwtid: createOtp(),
-      }
+      },
     );
     const refreshToken = createJwt(
       { userId: user.id, userEmail: user.email },
@@ -144,12 +140,12 @@ export class AuthService implements IAuthServcie {
       {
         expiresIn: "7d",
         jwtid: createOtp(),
-      }
+      },
     );
     return responseHandler({
       res,
       message: "User created successfully",
-      data: { accessToken, refreshToken },
+      data: { accessToken, refreshToken, user },
       status: 201,
     });
   };
@@ -158,8 +154,11 @@ export class AuthService implements IAuthServcie {
   login = async (req: Request, res: Response, next: NextFunction) => {
     const { email, password }: loginDTO = req.body;
     // step: check credentials
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await compare(password, user.password))) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
+    if (!user || !(await compare(password, user.password as string))) {
       throw new AppError(HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
     }
     // step: create token
@@ -169,7 +168,7 @@ export class AuthService implements IAuthServcie {
       {
         expiresIn: "1h",
         jwtid: createOtp(),
-      }
+      },
     );
     const refreshToken = createJwt(
       { userId: user.id, userEmail: user.email },
@@ -177,12 +176,12 @@ export class AuthService implements IAuthServcie {
       {
         expiresIn: "7d",
         jwtid: createOtp(),
-      }
+      },
     );
     return responseHandler({
       res,
-      message: "Loggedin successfully",
-      data: { accessToken, refreshToken },
+      message: "تم تسجيل الدخول بنجاح",
+      data: { accessToken, refreshToken, user },
     });
   };
 
@@ -211,7 +210,7 @@ export class AuthService implements IAuthServcie {
       {
         expiresIn: "1h",
         jwtid,
-      }
+      },
     );
     return responseHandler({ res, data: { accessToken } });
   };
@@ -230,7 +229,7 @@ export class AuthService implements IAuthServcie {
     if (!userVerify) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
-        "UserVerify of user not found"
+        "UserVerify of user not found",
       );
     }
     // step: check user_otp
@@ -255,7 +254,7 @@ export class AuthService implements IAuthServcie {
       if (!userVerify.email) {
         throw new AppError(
           HttpStatusCode.BAD_REQUEST,
-          "No new email to confirm"
+          "No new email to confirm",
         );
       }
       const updatedUser = await prisma.user.update({
@@ -277,7 +276,7 @@ export class AuthService implements IAuthServcie {
     if (!user.is_confirmed) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Please confirm email to update it"
+        "Please confirm email to update it",
       );
     }
     // step: send otp to current email
@@ -294,7 +293,7 @@ export class AuthService implements IAuthServcie {
     if (!isEmailSended) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Error while checking email"
+        "Error while checking email",
       );
     }
     // step: save otp and new_email
@@ -304,7 +303,7 @@ export class AuthService implements IAuthServcie {
     let updatedUserVerify = null;
     if (isUserVerifyExist) {
       updatedUserVerify = await prisma.userVerify.update({
-        where: { user_id: user.id },
+        where: { id: isUserVerifyExist.id },
         data: {
           code: await hash(otpCodeForCurrentEmail),
           email: new_email,
@@ -340,7 +339,7 @@ export class AuthService implements IAuthServcie {
     if (!userVerify) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
-        "UserVerify of user not found"
+        "UserVerify of user not found",
       );
     }
     // step: check if otp not expired yet
@@ -348,7 +347,7 @@ export class AuthService implements IAuthServcie {
     if (otpTime.getTime() + 5 * 60 * 1000 > Date.now()) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Your OTP not expired yet"
+        "Your OTP not expired yet",
       );
     }
     // step: send email otp
@@ -365,12 +364,12 @@ export class AuthService implements IAuthServcie {
     if (!isEmailSended) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Error while sending email"
+        "Error while sending email",
       );
     }
     // step: update email_otp
     const updatedUserVerify = await prisma.userVerify.update({
-      where: { user_id: user.id },
+      where: { id: userVerify.id },
       data: {
         code: await hash(otpCode),
       },
@@ -390,7 +389,7 @@ export class AuthService implements IAuthServcie {
     if (await compare(new_password, user.password)) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "You can not make new password equal to old password"
+        "You can not make new password equal to old password",
       );
     }
     // step: update password and password_last_updated
@@ -416,13 +415,13 @@ export class AuthService implements IAuthServcie {
       throw new AppError(HttpStatusCode.NOT_FOUND, "User not found");
     }
     const user = isUserExist;
-    const userVerify = await prisma.userVerify.findUnique({
+    const userVerify = await prisma.userVerify.findFirst({
       where: { user_id: user.id },
     });
     if (!userVerify) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
-        "UserVerify of user not found"
+        "UserVerify of user not found",
       );
     }
     // step: check if otp not expired yet
@@ -430,13 +429,13 @@ export class AuthService implements IAuthServcie {
     if (otpTime.getTime() + 5 * 60 * 1000 > Date.now()) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Your OTP not expired yet"
+        "Your OTP not expired yet",
       );
     }
     // step: send email otp
     const otpCode = createOtp();
     const { isEmailSended, info } = await sendEmail({
-      to: user.email,
+      to: user?.email as string,
       subject: "Reset password OTP",
       html: template({
         otpCode,
@@ -447,12 +446,12 @@ export class AuthService implements IAuthServcie {
     if (!isEmailSended) {
       throw new AppError(
         HttpStatusCode.BAD_REQUEST,
-        "Error while sending email"
+        "Error while sending email",
       );
     }
     // step: update password_otp
     const updatedUserVerify = await prisma.userVerify.update({
-      where: { user_id: user.id },
+      where: { id: userVerify.id },
       data: {
         code: await hash(otpCode),
       },
@@ -472,13 +471,13 @@ export class AuthService implements IAuthServcie {
       throw new AppError(HttpStatusCode.NOT_FOUND, "User not found");
     }
     const user = isUserExist;
-    const userVerify = await prisma.userVerify.findUnique({
+    const userVerify = await prisma.userVerify.findFirst({
       where: { user_id: user.id },
     });
     if (!userVerify) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
-        "UserVerify of user not found"
+        "UserVerify of user not found",
       );
     }
     // step: check user_otp

@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileType = exports.StoreInEnum = exports.GenderEnum = void 0;
 var GenderEnum;
 (function (GenderEnum) {
-    GenderEnum["MALE"] = "male";
-    GenderEnum["FEMALE"] = "female";
+    GenderEnum["MALE"] = "MALE";
+    GenderEnum["FEMALE"] = "FEMALE";
 })(GenderEnum || (exports.GenderEnum = GenderEnum = {}));
 var StoreInEnum;
 (function (StoreInEnum) {
