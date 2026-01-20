@@ -347,11 +347,10 @@
 //   type_id             String
 //   badges_id           String?
 //   national_id         String    @db.VarChar(191)
-//   synonyms            String?   @db.VarChar(191)
+//   synonyms            Json?
 //   tax_card            String    @db.VarChar(191)
 //   commercial_register String    @db.VarChar(191)
 //   is_approved         Boolean?  @default(false)
-//   is_active           Boolean?  @default(true)
 
 //   type                  SupplierType?                  @relation(fields: [type_id], references: [id])
 //   badge                 SupplierBadge?                 @relation(fields: [badges_id], references: [id])

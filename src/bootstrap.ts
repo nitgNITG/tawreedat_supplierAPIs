@@ -39,12 +39,14 @@ const bootstrap = async () => {
   // app.use(cors(corsOptions));
   app.use(cors());
   app.use(express.json());
+  // Serve static files from uploads directory
+  app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
   app.use("/api/v1", router);
   app.use(errorMiddleware);
   if (process.env.NODE_ENV !== "production") {
     app.listen(process.env.PORT, () => {
       console.log(
-        `Backend server is running on port ${process.env.PORT} successfully`
+        `Backend server is running on port ${process.env.PORT} successfully`,
       );
       console.log("====================================================");
     });

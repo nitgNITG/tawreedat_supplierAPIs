@@ -8,7 +8,6 @@ export const registerSchema = z
     email: z.email(),
     phone: z.string().optional(),
     password: z.string().min(6),
-    image_url: z.string().optional(),
     lang: z.string().optional(),
     birth_date: z.coerce.date().optional(),
     gender: z.literal([GenderEnum.MALE, GenderEnum.FEMALE]).optional(),

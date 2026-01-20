@@ -13,6 +13,7 @@ exports.registerSchema = zod_1.default
     email: zod_1.default.email(),
     phone: zod_1.default.string().optional(),
     password: zod_1.default.string().min(6),
+    image_url: zod_1.default.string().optional(),
     lang: zod_1.default.string().optional(),
     birth_date: zod_1.default.coerce.date().optional(),
     gender: zod_1.default.literal([global_types_1.GenderEnum.MALE, global_types_1.GenderEnum.FEMALE]).optional(),

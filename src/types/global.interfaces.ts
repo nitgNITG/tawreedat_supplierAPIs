@@ -40,3 +40,4 @@ export interface IAuthServcie {
   // ): Promise<Response>;
   // logout(req: Request, res: Response, next: NextFunction): Promise<Response>;
 }
+export interface IProfileServcie {}

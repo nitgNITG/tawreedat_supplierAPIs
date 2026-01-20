@@ -12,206 +12,206 @@ datasource db {
 // =========================================================
 
 enum DiscountType {
-  percent
-  fixed
+  PERCENT
+  FIXED
 }
 
 enum ContractStatus {
-  pending
-  active
-  inactive
-  cancelled
+  PENDING
+  ACTIVE
+  INACTIVE
+  CANCELLED
 }
 
 enum TargetModule {
-  Products
-  Suppliers
-  Offers
-  Ads
+  PRODUCTS
+  SUPPLIERS
+  OFFERS
+  ADS
 }
 
 enum ActivityType {
-  create
-  update
-  delete
-  view
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
 }
 
 enum AdType {
-  external
-  internal
+  EXTERNAL
+  INTERNAL
 }
 
 enum AdStatus {
-  draft
-  active
-  paused
-  expired
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
 }
 
 enum AdPlacement {
-  Top
-  Middle
-  Bottom
+  TOP
+  MIDDLE
+  BOTTOM
 }
 
 enum PopupSize {
-  Small
-  Medium
-  Large
+  SMALL
+  MEDIUM
+  LARGE
 }
 
 enum ComplaintCreatedByType {
-  customer
-  supplier
+  CUSTOMER
+  SUPPLIER
 }
 
 enum ComplaintStatus {
-  open
-  in_progress
-  resolved
-  closed
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 enum Priority {
-  low
-  medium
-  high
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum NotificationType {
-  info
-  warning
-  success
-  error
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
 }
 
 enum Channel {
-  email
-  sms
+  EMAIL
+  SMS
 }
 
 enum ReviewTargetType {
-  supplier
-  product
-  representative
+  SUPPLIER
+  PRODUCT
+  REPRESENTATIVE
 }
 
 enum ReviewStatus {
-  pending
-  approved
-  rejected
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum CustomerBadgeName {
-  Basic
-  Standard
+  BASIC
+  STANDARD
   VIP
 }
 
 enum CustomerClassName {
-  new
-  repeat
-  loyal
-  lost
+  NEW
+  REPEAT
+  LOYAL
+  LOST
 }
 
 enum OrderStatus {
-  pending
-  approved
-  delivered
-  cancelled
-  refunded
+  PENDING
+  APPROVED
+  DELIVERED
+  CANCELLED
+  REFUNDED
 }
 
 enum PaymentType {
-  card
-  wallet
-  instapay
-  installment
+  CARD
+  WALLET
+  INSTAPAY
+  INSTALLMENT
 }
 
 enum PaymentStatus {
-  pending
-  processing
-  paid
-  failed
-  cancelled
-  refunded
-  partially_refunded
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
 }
 
 enum CardProvider {
-  paymob
-  fawry
+  PAYMOB
+  FAWRY
 }
 
 enum CardBrand {
-  visa
-  mastercard
-  meeza
+  VISA
+  MASTERCARD
+  MEEZA
 }
 
 enum WalletProvider {
-  vodafone_cash
-  orange_cash
-  etisalat_cash
-  we_pay
+  VODAFONE_CASH
+  ORANGE_CASH
+  ETISALAT_CASH
+  WE_PAY
 }
 
 enum ConfirmationStatus {
-  pending
-  confirmed
-  rejected
+  PENDING
+  CONFIRMED
+  REJECTED
 }
 
 enum InstallmentProvider {
-  valu
-  halan
-  sympl
-  souhoola
-  contact
+  VALU
+  HALAN
+  SYMPL
+  SOUHOOLA
+  CONTACT
 }
 
 enum RefundMethod {
-  same_method
+  SAME_METHOD
 }
 
 enum RefundStatus {
-  pending
-  processing
-  completed
-  failed
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum RepresentativeStatus {
-  active
-  inactive
-  suspended
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
 
 enum VehicleType {
-  motorcycle
-  car
-  van
-  truck
+  MOTORCYCLE
+  CAR
+  VAN
+  TRUCK
 }
 
 enum AssignmentStatus {
-  assigned
-  accepted
-  rejected
-  picked_up
-  in_transit
-  delivered
-  failed
-  returned
+  ASSIGNED
+  ACCEPTED
+  REJECTED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
 }
 
 enum PackageCondition {
-  good
-  damaged
-  incomplete
+  GOOD
+  DAMAGED
+  INCOMPLETE
 }
 
 enum FaqLanguage {
@@ -236,6 +236,12 @@ enum Gender {
   FEMALE
 }
 
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // =========================================================
 // Models
 // =========================================================
@@ -243,39 +249,53 @@ enum Gender {
 // ========== User ==========
 
 model User {
-  id                    String         @id @default(uuid())
-  email                 String?        @unique @db.VarChar(70)
-  phone                 String?        @unique @db.VarChar(20)
-  password              String?        @db.VarChar(100)
-  lang                  Language       @default(AR)
+  id                    String                 @id @default(uuid())
+  email                 String?                @unique @db.VarChar(70)
+  phone                 String?                @unique @db.VarChar(20)
+  password              String?                @db.VarChar(100)
+  lang                  Language               @default(AR)
   apple_id              String?
   birth_date            DateTime?
-  created_at            DateTime?      @default(now())
+  created_at            DateTime?              @default(now())
   deleted_at            DateTime?
   fcm_token             String?
   full_name             String
   image_url             String?
-  is_confirmed          Boolean?       @default(true)
+  is_confirmed          Boolean?               @default(true)
   last_login_at         String?
-  login_type            LoginType      @default(LOCAL)
+  login_type            LoginType              @default(LOCAL)
   password_last_updated DateTime?
   role_id               String
-  updated_at            DateTime?      @updatedAt
-  is_active             Boolean?       @default(true)
-  gender                Gender         @default(MALE)
+  updated_at            DateTime?              @updatedAt
+  is_active             Boolean?               @default(true)
+  gender                Gender                 @default(MALE)
   UserAddress           UserAddress[]
   cartItems             CartItem[]
   orders                Order[]
-  requestedRefunds      Refund[]       @relation("RefundRequestedBy")
-  reviewedRefunds       Refund[]       @relation("RefundReviewedBy")
+  requestedRefunds      Refund[]               @relation("RefundRequestedBy")
+  reviewedRefunds       Refund[]               @relation("RefundReviewedBy")
   reviews               Review[]
-  role                  UserRole       @relation(fields: [role_id], references: [id])
+  role                  UserRole               @relation(fields: [role_id], references: [id])
   UserVerify            UserVerify[]
   wallet                Wallet?
   wishlist              WishlistItem[]
+  profileUpdateRequests ProfileUpdateRequest[]
 
   @@index([role_id], map: "user_role_id_fkey")
   @@map("user")
+}
+
+model ProfileUpdateRequest {
+  id         String        @id @default(uuid())
+  user_id    String
+  data       Json
+  status     RequestStatus @default(PENDING)
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("profile_update_request")
 }
 
 model UserRole {
@@ -297,7 +317,7 @@ model UserVerify {
   phone      String?
   email      String?
   created_at DateTime @default(now())
-  updated_at  DateTime  @updatedAt
+  updated_at DateTime @updatedAt
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id], map: "UserVerify_user_id_fkey")
@@ -343,15 +363,14 @@ model Wallet {
 // ========== Supplier ==========
 
 model Supplier {
-  id                  String    @id // References User.id (String)
+  id                  String   @id // References User.id (String)
   type_id             String
   badges_id           String?
-  national_id         String    @db.VarChar(191)
-  synonyms            String?   @db.VarChar(191)
-  tax_card            String    @db.VarChar(191)
-  commercial_register String    @db.VarChar(191)
-  is_approved         Boolean?  @default(false)
-  is_active           Boolean?  @default(true)
+  national_id         String   @db.VarChar(191)
+  synonyms            String?  @db.VarChar(191)
+  tax_card            String   @db.VarChar(191)
+  commercial_register String   @db.VarChar(191)
+  is_approved         Boolean? @default(false)
 
   type                  SupplierType?                  @relation(fields: [type_id], references: [id])
   badge                 SupplierBadge?                 @relation(fields: [badges_id], references: [id])
@@ -379,26 +398,23 @@ model SupplierType {
 }
 
 model SupplierStoreAddress {
-  id                 String            @id @default(uuid())
-  supplier_id        String
-  address_line_1     String?           @db.VarChar(191)
-  address_line_2     String?           @db.VarChar(191)
-  city               String?           @db.VarChar(191)
-  state              String?           @db.VarChar(191)
-  country            String?           @default("Egypt") @db.VarChar(191)
-  postal_code        String?           @db.VarChar(191)
-  latitude           Decimal?          @db.Decimal(10, 8)
-  longitude          Decimal?          @db.Decimal(11, 8)
-  contact_name       String?           @db.VarChar(191)
-  contact_phone      String?           @db.VarChar(191)
-  working_hours      Json?
-  delivery_radius_km Decimal?
-  covered_cities     Json?
-  created_at         DateTime          @default(now())
-  updated_at         DateTime          @updatedAt
-  deleted_at         DateTime?
-  supplier           Supplier?         @relation(fields: [supplier_id], references: [id])
-  pickupAssignments  OrderAssignment[] @relation("PickupAddress")
+  id                String            @id @default(uuid())
+  supplier_id       String
+  address_line_1    String?           @db.VarChar(191)
+  address_line_2    String?           @db.VarChar(191)
+  city              String?           @db.VarChar(191)
+  state             String?           @db.VarChar(191)
+  country           String?           @default("Egypt") @db.VarChar(191)
+  postal_code       String?           @db.VarChar(191)
+  latitude          Decimal?          @db.Decimal(10, 8)
+  longitude         Decimal?          @db.Decimal(11, 8)
+  contact_name      String?           @db.VarChar(191)
+  contact_phone     String?           @db.VarChar(191)
+  working_hours     Json?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+  supplier          Supplier?         @relation(fields: [supplier_id], references: [id])
+  pickupAssignments OrderAssignment[] @relation("PickupAddress")
 
   @@map("supplier_store_address")
 }
@@ -419,18 +435,20 @@ model SupplierActivity {
 }
 
 model SupplierStat {
-  supplier_id          String    @id
-  total_contract_value Decimal?
-  total_customers      Int?
-  active_products      Int?
-  total_orders         Int?
-  delivered_orders     Int?
-  cancelled_orders     Int?
-  rating               Decimal?
-  last_order_date      DateTime?
-  created_at           DateTime  @default(now())
-  updated_at           DateTime  @updatedAt
-  supplier             Supplier  @relation(fields: [supplier_id], references: [id])
+  supplier_id            String    @id
+  total_customers        Int?
+  total_orders           Int?
+  total_delivered_orders Int?
+  total_cancelled_orders Int?
+  total_active_products  Int?
+  last_order_date        DateTime?
+  category_stat          Json?
+  brand_stat             Json?
+  total_products_rating  Json?
+  sales_history          Json?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+  supplier               Supplier  @relation(fields: [supplier_id], references: [id])
 
   @@map("supplier_stat")
 }
@@ -756,7 +774,7 @@ model Review {
   rating      Int?
   comment     String?           @db.Text
   order_id    String?
-  status      ReviewStatus?     @default(pending)
+  status      ReviewStatus?     @default(PENDING)
   created_at  DateTime          @default(now())
   updated_at  DateTime          @updatedAt
   deleted_at  DateTime?
@@ -1037,7 +1055,7 @@ model WalletPaymentDetail {
   provider_reference          String?             @db.VarChar(191)
   provider_response           Json?
   confirmation_screenshot_url String?             @db.VarChar(191)
-  confirmation_status         ConfirmationStatus? @default(pending)
+  confirmation_status         ConfirmationStatus? @default(PENDING)
   confirmed_by_admin_id       String?
   confirmed_at                DateTime?
   rejection_reason            String?             @db.VarChar(191)
@@ -1060,7 +1078,7 @@ model InstapayPaymentDetail {
   provider_reference          String?             @db.VarChar(191)
   provider_response           Json?
   confirmation_screenshot_url String?             @db.VarChar(191)
-  confirmation_status         ConfirmationStatus? @default(pending)
+  confirmation_status         ConfirmationStatus? @default(PENDING)
   confirmed_by_admin_id       String?
   confirmed_at                DateTime?
   rejection_reason            String?             @db.VarChar(191)

@@ -1,0 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const validation_middleware_1 = require("../../core/middlewares/validation.middleware");
+const profile_validation_1 = require("./profile.validation");
+const auth_middleware_1 = require("../../core/middlewares/auth.middleware");
+const upload_1 = __importDefault(require("../../core/middlewares/upload"));
+const profile_service_1 = require("./profile.service");
+const router = (0, express_1.Router)();
+const profileService = new profile_service_1.ProfileService();
+router.get("/get-profile", auth_middleware_1.auth, profileService.getProfile);
+router.patch("/update-profile", auth_middleware_1.auth, upload_1.default.single("image"), (0, validation_middleware_1.validation)(profile_validation_1.updateProfileSchema), profileService.updateProfile);
+router.patch("/update-documents", auth_middleware_1.auth, (0, validation_middleware_1.validation)(profile_validation_1.updateDocumentsSchema), profileService.updateDocuments);
+router.get("/get-store-addresses", auth_middleware_1.auth, profileService.getStoreAddresses);
+router.post("/add-store-address", auth_middleware_1.auth, (0, validation_middleware_1.validation)(profile_validation_1.addStoreAddressSchema), profileService.addStoreAddress);
+router.get("/get-store-address/:id", auth_middleware_1.auth, profileService.getStoreAddress);
+router.patch("/update-store-address/:id", auth_middleware_1.auth, (0, validation_middleware_1.validation)(profile_validation_1.updateStoreAddressSchema), profileService.updateStoreAddress);
+router.delete("/delete-store-address/:id", auth_middleware_1.auth, profileService.deleteStoreAddress);
+router.patch("/update-stat", auth_middleware_1.auth, profileService.updateStat);
+router.get("/get-stat", auth_middleware_1.auth, (0, validation_middleware_1.validation)(profile_validation_1.getStatSchema), profileService.getStat);
+router.delete("/soft-delete", auth_middleware_1.auth, profileService.softDelete);
+router.delete("/hard-delete", auth_middleware_1.auth, profileService.hardDelete);
+router.post("/cancel-soft-delete", auth_middleware_1.auth, profileService.cancelSoftDelete);
+exports.default = router;

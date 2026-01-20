@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
-const client_1 = require("@prisma/client");
 const generateHTML_1 = require("../../utils/sendEmail/generateHTML");
 const jwt_1 = require("../../utils/jwt");
 const createOtp_1 = require("../../utils/createOtp");
@@ -17,7 +16,7 @@ class AuthService {
     constructor() { }
     // ============================ register ============================
     register = async (req, res, next) => {
-        const { full_name, email, phone, password, lang, birth_date, gender, login_type, apple_id, type_id, national_id, synonyms, tax_card, commercial_register, } = req.body;
+        const { full_name, email, phone, password, image_url, lang, birth_date, gender, login_type, apple_id, type_id, national_id, synonyms, tax_card, commercial_register, } = req.body;
         // step: check user existence
         const isUserExist = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (isUserExist) {
@@ -71,7 +70,7 @@ class AuthService {
                 email,
                 phone: phone ?? null,
                 password: await (0, bcrypt_1.hash)(password),
-                lang: lang ?? client_1.Language.AR,
+                image_url: image_url ?? null,
                 birth_date: birth_date ? new Date(birth_date) : null,
                 gender: gender ?? global_types_1.GenderEnum.MALE,
                 apple_id: apple_id ?? null,
@@ -124,11 +123,6 @@ class AuthService {
         if (!user || !(await (0, bcrypt_1.compare)(password, user.password))) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
         }
-        // step: update last_login_at
-        const updatedUser = await prisma_1.prisma.user.update({
-            where: { email },
-            data: { last_login_at: Date.now().toString() },
-        });
         // step: create token
         const accessToken = (0, jwt_1.createJwt)({ userId: user.id, userEmail: user.email }, process.env.ACCESS_SEGNATURE, {
             expiresIn: "1h",

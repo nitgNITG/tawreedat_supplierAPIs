@@ -42,6 +42,8 @@ const bootstrap = async () => {
     // app.use(cors(corsOptions));
     app.use((0, cors_1.default)());
     app.use(express_1.default.json());
+    // Serve static files from uploads directory
+    app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "../uploads")));
     app.use("/api/v1", routes_1.default);
     app.use(error_middleware_1.errorMiddleware);
     if (process.env.NODE_ENV !== "production") {

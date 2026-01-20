@@ -1,3 +1,4 @@
+import { Language, Prisma } from "@prisma/client";
 import { NextFunction, Request, Response } from "express";
 import {
   changePasswordDTO,
@@ -31,7 +32,6 @@ export class AuthService implements IAuthServcie {
       email,
       phone,
       password,
-      image_url,
       lang,
       birth_date,
       gender,
@@ -71,10 +71,16 @@ export class AuthService implements IAuthServcie {
     });
 
     if (!role) {
-      throw new AppError(
-        HttpStatusCode.BAD_REQUEST,
-        "No supplier role with name Supplier",
-      );
+      role = await prisma.userRole.create({
+        data: {
+          name: "Supplier",
+          description: "Supplier role description",
+        },
+      });
+      // throw new AppError(
+      //   HttpStatusCode.BAD_REQUEST,
+      //   "No supplier role with name Supplier",
+      // );
     }
     // step: get or create SupplierType
     let supplierType = await prisma.supplierType.findFirst();
@@ -95,7 +101,7 @@ export class AuthService implements IAuthServcie {
         email,
         phone: phone ?? null,
         password: await hash(password),
-        image_url: image_url ?? null,
+        lang: (lang as Language) ?? Language.AR,
         birth_date: birth_date ? new Date(birth_date) : null,
         gender: gender ?? GenderEnum.MALE,
         apple_id: apple_id ?? null,
@@ -161,6 +167,11 @@ export class AuthService implements IAuthServcie {
     if (!user || !(await compare(password, user.password as string))) {
       throw new AppError(HttpStatusCode.UNAUTHORIZED, "Invalid credentials");
     }
+    // step: update last_login_at
+    const updatedUser = await prisma.user.update({
+      where: { email },
+      data: { last_login_at: Date.now().toString() },
+    });
     // step: create token
     const accessToken = createJwt(
       { userId: user.id, userEmail: user.email },

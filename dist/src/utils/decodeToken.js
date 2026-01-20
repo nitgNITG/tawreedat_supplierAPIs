@@ -34,6 +34,13 @@ const decodeToken = async ({ authorization, tokenType = TokenTypesEnum.access, }
     if (!user) {
         throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "User not found");
     }
+    // step: supplier existence
+    const supplier = await prisma_1.prisma.supplier.findUnique({
+        where: { id: payload.userId },
+    });
+    if (!supplier) {
+        throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.NOT_FOUND, "Supplier not found");
+    }
     // step: credentials changing
     if (user.password_last_updated) {
         if (user.password_last_updated.getTime() > payload.iat * 1000) {
