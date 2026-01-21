@@ -196,6 +196,22 @@ export class AuthService implements IAuthServcie {
     });
   };
 
+  // ============================ getSupplierTypes ============================
+  getSupplierTypes = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const supplierTypes = await prisma.supplierType.findMany({
+      where: { deleted_at: null },
+    });
+    return responseHandler({
+      res,
+      message: "Supplier types fetched successfully",
+      data: supplierTypes,
+    });
+  };
+
   // ============================ refresh-token ============================
   refreshToken = async (req: Request, res: Response, next: NextFunction) => {
     const authorization = req.headers.authorization;

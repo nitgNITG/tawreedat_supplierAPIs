@@ -144,6 +144,17 @@ class AuthService {
             data: { accessToken, refreshToken, user },
         });
     };
+    // ============================ getSupplierTypes ============================
+    getSupplierTypes = async (req, res, next) => {
+        const supplierTypes = await prisma_1.prisma.supplierType.findMany({
+            where: { deleted_at: null },
+        });
+        return (0, response_handler_1.responseHandler)({
+            res,
+            message: "Supplier types fetched successfully",
+            data: supplierTypes,
+        });
+    };
     // ============================ refresh-token ============================
     refreshToken = async (req, res, next) => {
         const authorization = req.headers.authorization;

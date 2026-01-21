@@ -17,6 +17,7 @@ const authService = new AuthService();
 
 router.post("/register", validation(registerSchema), authService.register);
 router.post("/login", validation(loginSchema), authService.login);
+router.get("/get-supplier-types", authService.getSupplierTypes);
 router.post("/refresh-token", authService.refreshToken);
 router.post("/verify-email", validation(verifyEmailSchema), authService.verifyEmail);
 router.patch("/update-email",auth,validation(updateEmailSchema),authService.updateEmail);
