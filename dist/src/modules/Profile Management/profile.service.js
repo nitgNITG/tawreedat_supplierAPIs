@@ -108,7 +108,7 @@ class ProfileService {
     // ============================ addStoreAddress ============================
     addStoreAddress = async (req, res, next) => {
         const user = res.locals.user;
-        const { address_line_1, address_line_2, city, state, country, postal_code, latitude, longitude, contact_name, contact_phone, working_hours, } = req.body;
+        const { address_line_1, address_line_2, city, state, country, latitude, longitude, contact_name, contact_phone, google_map_link, working_hours, } = req.body;
         // step: create new store address
         const storeAddress = await prisma_1.prisma.supplierStoreAddress.create({
             data: {
@@ -118,11 +118,11 @@ class ProfileService {
                 city: city ?? null,
                 state: state ?? null,
                 country: country ?? "Egypt",
-                postal_code: postal_code ?? null,
                 latitude: latitude ?? null,
                 longitude: longitude ?? null,
                 contact_name: contact_name ?? null,
                 contact_phone: contact_phone ?? null,
+                google_map_link: google_map_link ?? null,
                 working_hours: working_hours
                     ? working_hours
                     : client_1.Prisma.JsonNull,
@@ -159,7 +159,7 @@ class ProfileService {
     updateStoreAddress = async (req, res, next) => {
         const user = res.locals.user;
         const { id } = req.params;
-        const { address_line_1, address_line_2, city, state, country, postal_code, latitude, longitude, contact_name, contact_phone, working_hours, } = req.body;
+        const { address_line_1, address_line_2, city, state, country, latitude, longitude, contact_name, contact_phone, google_map_link, working_hours, } = req.body;
         // step: check if store address exists and belongs to this supplier
         const existingAddress = await prisma_1.prisma.supplierStoreAddress.findFirst({
             where: {
@@ -179,11 +179,11 @@ class ProfileService {
                 city: city ?? existingAddress.city,
                 state: state ?? existingAddress.state,
                 country: country ?? existingAddress.country,
-                postal_code: postal_code ?? existingAddress.postal_code,
                 latitude: latitude ?? existingAddress.latitude,
                 longitude: longitude ?? existingAddress.longitude,
                 contact_name: contact_name ?? existingAddress.contact_name,
                 contact_phone: contact_phone ?? existingAddress.contact_phone,
+                google_map_link: google_map_link ?? existingAddress.google_map_link,
                 working_hours: working_hours
                     ? working_hours
                     : (existingAddress.working_hours ??
@@ -237,21 +237,20 @@ class ProfileService {
         });
         const productIds = supplierProducts.map((p) => p.id);
         // step: get all order items for this supplier's products
-        const orderItems = await prisma_1.prisma.orderItem.findMany({
-            where: { product_id: { in: productIds } },
+        const orderItems = await prisma_1.prisma.order_items.findMany({
+            where: { productId: { in: productIds } },
             select: {
-                order_id: true,
-                product_id: true,
-                amount: true,
-                total_price: true,
-                snapshot_product_name: true,
-                order: {
+                orderId: true,
+                productId: true,
+                quantity: true,
+                price: true,
+                orders: {
                     select: {
                         id: true,
                         status: true,
-                        created_at: true,
-                        userId: true,
-                        User: { select: { full_name: true } },
+                        createdAt: true,
+                        customerId: true,
+                        user: { select: { full_name: true } },
                     },
                 },
             },
@@ -259,32 +258,32 @@ class ProfileService {
         // step: calculate total_customers (unique customers who ordered)
         const uniqueCustomerIds = new Set();
         orderItems.forEach((item) => {
-            if (item.order?.userId) {
-                uniqueCustomerIds.add(item.order.userId);
+            if (item.orders?.customerId) {
+                uniqueCustomerIds.add(item.orders.customerId);
             }
         });
         const total_customers = uniqueCustomerIds.size;
         // step: calculate total_orders (unique orders containing this supplier's products)
         const uniqueOrderIds = new Set();
         orderItems.forEach((item) => {
-            if (item.order_id) {
-                uniqueOrderIds.add(item.order_id);
+            if (item.orderId) {
+                uniqueOrderIds.add(item.orderId);
             }
         });
         const total_orders = uniqueOrderIds.size;
         // step: calculate total_delivered_orders
         const deliveredOrderIds = new Set();
         orderItems.forEach((item) => {
-            if (item.order?.status === "DELIVERED" && item.order_id) {
-                deliveredOrderIds.add(item.order_id);
+            if (item.orders?.status === "DELIVERED" && item.orderId) {
+                deliveredOrderIds.add(item.orderId);
             }
         });
         const total_delivered_orders = deliveredOrderIds.size;
         // step: calculate total_cancelled_orders
         const cancelledOrderIds = new Set();
         orderItems.forEach((item) => {
-            if (item.order?.status === "CANCELLED" && item.order_id) {
-                cancelledOrderIds.add(item.order_id);
+            if (item.orders?.status === "CANCELLED" && item.orderId) {
+                cancelledOrderIds.add(item.orderId);
             }
         });
         const total_cancelled_orders = cancelledOrderIds.size;
@@ -293,9 +292,9 @@ class ProfileService {
         // step: calculate last_order_date
         let last_order_date = null;
         orderItems.forEach((item) => {
-            if (item.order?.created_at) {
-                if (!last_order_date || item.order.created_at > last_order_date) {
-                    last_order_date = item.order.created_at;
+            if (item.orders?.createdAt) {
+                if (!last_order_date || item.orders.createdAt > last_order_date) {
+                    last_order_date = item.orders.createdAt;
                 }
             }
         });
@@ -320,25 +319,24 @@ class ProfileService {
             total_products,
         }));
         // step: calculate total_products_rating
-        const productReviews = await prisma_1.prisma.review.findMany({
+        const productReviews = await prisma_1.prisma.reviews.findMany({
             where: {
-                target_type: "PRODUCT",
-                target_id: { in: productIds },
+                productId: { in: productIds },
                 status: "APPROVED",
-                rating: { not: null },
+                // rating: { not: undefined }, // Removed invalid filter, rating is non-nullable Float
             },
             select: {
-                target_id: true,
+                productId: true,
                 rating: true,
             },
         });
         const ratingMap = new Map();
         productReviews.forEach((review) => {
-            if (review.target_id && review.rating !== null) {
-                const current = ratingMap.get(review.target_id) || { sum: 0, count: 0 };
+            if (review.productId) {
+                const current = ratingMap.get(review.productId) || { sum: 0, count: 0 };
                 current.sum += review.rating;
                 current.count += 1;
-                ratingMap.set(review.target_id, current);
+                ratingMap.set(review.productId, current);
             }
         });
         const total_products_rating = supplierProducts
@@ -353,22 +351,21 @@ class ProfileService {
         // step: calculate sales_history
         const salesMap = new Map();
         orderItems.forEach((item) => {
-            if (item.product_id) {
-                const productName = item.snapshot_product_name ||
-                    supplierProducts.find((p) => p.id === item.product_id)?.name ||
+            if (item.productId) {
+                const productName = supplierProducts.find((p) => p.id === item.productId)?.name ||
                     "Unknown";
-                const current = salesMap.get(item.product_id) || {
+                const current = salesMap.get(item.productId) || {
                     product_name: productName,
                     total_ordered_amount: 0,
                     total_ordered_price: 0,
                     all_customers: new Set(),
                 };
-                current.total_ordered_amount += Number(item.amount || 0);
-                current.total_ordered_price += Number(item.total_price || 0);
-                if (item.order?.User?.full_name) {
-                    current.all_customers.add(item.order.User.full_name);
+                current.total_ordered_amount += Number(item.quantity || 0);
+                current.total_ordered_price += Number(item.price * item.quantity || 0);
+                if (item.orders?.user?.full_name) {
+                    current.all_customers.add(item.orders.user.full_name);
                 }
-                salesMap.set(item.product_id, current);
+                salesMap.set(item.productId, current);
             }
         });
         const sales_history = Array.from(salesMap.values()).map((sale) => ({
@@ -458,11 +455,11 @@ class ProfileService {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Account is already marked for deletion");
         }
         // step: check delete validation (no product in active orders)
-        const activeOrderItems = await prisma_1.prisma.orderItem.findFirst({
+        const activeOrderItems = await prisma_1.prisma.order_items.findFirst({
             where: {
                 product: { supplier_id: user.id },
-                order: {
-                    status: { in: ["PENDING", "APPROVED"] },
+                orders: {
+                    status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] },
                 },
             },
         });
@@ -492,11 +489,11 @@ class ProfileService {
     hardDelete = async (req, res, next) => {
         const user = res.locals.user;
         // step: check delete validation (no product in active orders)
-        const activeOrderItems = await prisma_1.prisma.orderItem.findFirst({
+        const activeOrderItems = await prisma_1.prisma.order_items.findFirst({
             where: {
                 product: { supplier_id: user.id },
-                order: {
-                    status: { in: ["PENDING", "APPROVED"] },
+                orders: {
+                    status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] },
                 },
             },
         });

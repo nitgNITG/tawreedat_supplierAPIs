@@ -144,11 +144,11 @@ export class ProfileService implements IProfileServcie {
       city,
       state,
       country,
-      postal_code,
       latitude,
       longitude,
       contact_name,
       contact_phone,
+      google_map_link,
       working_hours,
     }: addStoreAddressDTO = req.body;
 
@@ -161,11 +161,11 @@ export class ProfileService implements IProfileServcie {
         city: city ?? null,
         state: state ?? null,
         country: country ?? "Egypt",
-        postal_code: postal_code ?? null,
         latitude: latitude ?? null,
         longitude: longitude ?? null,
         contact_name: contact_name ?? null,
         contact_phone: contact_phone ?? null,
+        google_map_link: google_map_link ?? null,
         working_hours: working_hours
           ? (working_hours as Prisma.InputJsonValue)
           : Prisma.JsonNull,
@@ -214,11 +214,11 @@ export class ProfileService implements IProfileServcie {
       city,
       state,
       country,
-      postal_code,
       latitude,
       longitude,
       contact_name,
       contact_phone,
+      google_map_link,
       working_hours,
     }: updateStoreAddressDTO = req.body;
     // step: check if store address exists and belongs to this supplier
@@ -240,11 +240,11 @@ export class ProfileService implements IProfileServcie {
         city: city ?? existingAddress.city,
         state: state ?? existingAddress.state,
         country: country ?? existingAddress.country,
-        postal_code: postal_code ?? existingAddress.postal_code,
         latitude: latitude ?? existingAddress.latitude,
         longitude: longitude ?? existingAddress.longitude,
         contact_name: contact_name ?? existingAddress.contact_name,
         contact_phone: contact_phone ?? existingAddress.contact_phone,
+        google_map_link: google_map_link ?? existingAddress.google_map_link,
         working_hours: working_hours
           ? (working_hours as Prisma.InputJsonValue)
           : ((existingAddress.working_hours as Prisma.InputJsonValue) ??
@@ -307,21 +307,20 @@ export class ProfileService implements IProfileServcie {
     const productIds = supplierProducts.map((p) => p.id);
 
     // step: get all order items for this supplier's products
-    const orderItems = await prisma.orderItem.findMany({
-      where: { product_id: { in: productIds } },
+    const orderItems = await prisma.order_items.findMany({
+      where: { productId: { in: productIds } },
       select: {
-        order_id: true,
-        product_id: true,
-        amount: true,
-        total_price: true,
-        snapshot_product_name: true,
-        order: {
+        orderId: true,
+        productId: true,
+        quantity: true,
+        price: true,
+        orders: {
           select: {
             id: true,
             status: true,
-            created_at: true,
-            userId: true,
-            User: { select: { full_name: true } },
+            createdAt: true,
+            customerId: true,
+            user: { select: { full_name: true } },
           },
         },
       },
@@ -330,35 +329,35 @@ export class ProfileService implements IProfileServcie {
     // step: calculate total_customers (unique customers who ordered)
     const uniqueCustomerIds = new Set<string>();
     orderItems.forEach((item) => {
-      if (item.order?.userId) {
-        uniqueCustomerIds.add(item.order.userId);
+      if (item.orders?.customerId) {
+        uniqueCustomerIds.add(item.orders.customerId);
       }
     });
     const total_customers = uniqueCustomerIds.size;
 
     // step: calculate total_orders (unique orders containing this supplier's products)
-    const uniqueOrderIds = new Set<string>();
+    const uniqueOrderIds = new Set<number>();
     orderItems.forEach((item) => {
-      if (item.order_id) {
-        uniqueOrderIds.add(item.order_id);
+      if (item.orderId) {
+        uniqueOrderIds.add(item.orderId);
       }
     });
     const total_orders = uniqueOrderIds.size;
 
     // step: calculate total_delivered_orders
-    const deliveredOrderIds = new Set<string>();
+    const deliveredOrderIds = new Set<number>();
     orderItems.forEach((item) => {
-      if (item.order?.status === "DELIVERED" && item.order_id) {
-        deliveredOrderIds.add(item.order_id);
+      if (item.orders?.status === "DELIVERED" && item.orderId) {
+        deliveredOrderIds.add(item.orderId);
       }
     });
     const total_delivered_orders = deliveredOrderIds.size;
 
     // step: calculate total_cancelled_orders
-    const cancelledOrderIds = new Set<string>();
+    const cancelledOrderIds = new Set<number>();
     orderItems.forEach((item) => {
-      if (item.order?.status === "CANCELLED" && item.order_id) {
-        cancelledOrderIds.add(item.order_id);
+      if (item.orders?.status === "CANCELLED" && item.orderId) {
+        cancelledOrderIds.add(item.orderId);
       }
     });
     const total_cancelled_orders = cancelledOrderIds.size;
@@ -371,9 +370,9 @@ export class ProfileService implements IProfileServcie {
     // step: calculate last_order_date
     let last_order_date: Date | null = null;
     orderItems.forEach((item) => {
-      if (item.order?.created_at) {
-        if (!last_order_date || item.order.created_at > last_order_date) {
-          last_order_date = item.order.created_at;
+      if (item.orders?.createdAt) {
+        if (!last_order_date || item.orders.createdAt > last_order_date) {
+          last_order_date = item.orders.createdAt;
         }
       }
     });
@@ -405,25 +404,24 @@ export class ProfileService implements IProfileServcie {
     );
 
     // step: calculate total_products_rating
-    const productReviews = await prisma.review.findMany({
+    const productReviews = await prisma.reviews.findMany({
       where: {
-        target_type: "PRODUCT",
-        target_id: { in: productIds },
+        productId: { in: productIds },
         status: "APPROVED",
-        rating: { not: null },
+        // rating: { not: undefined }, // Removed invalid filter, rating is non-nullable Float
       },
       select: {
-        target_id: true,
+        productId: true,
         rating: true,
       },
     });
     const ratingMap = new Map<string, { sum: number; count: number }>();
     productReviews.forEach((review) => {
-      if (review.target_id && review.rating !== null) {
-        const current = ratingMap.get(review.target_id) || { sum: 0, count: 0 };
+      if (review.productId) {
+        const current = ratingMap.get(review.productId) || { sum: 0, count: 0 };
         current.sum += review.rating;
         current.count += 1;
-        ratingMap.set(review.target_id, current);
+        ratingMap.set(review.productId, current);
       }
     });
     const total_products_rating = supplierProducts
@@ -447,23 +445,22 @@ export class ProfileService implements IProfileServcie {
       }
     >();
     orderItems.forEach((item) => {
-      if (item.product_id) {
+      if (item.productId) {
         const productName =
-          item.snapshot_product_name ||
-          supplierProducts.find((p) => p.id === item.product_id)?.name ||
+          supplierProducts.find((p) => p.id === item.productId)?.name ||
           "Unknown";
-        const current = salesMap.get(item.product_id) || {
+        const current = salesMap.get(item.productId) || {
           product_name: productName,
           total_ordered_amount: 0,
           total_ordered_price: 0,
           all_customers: new Set<string>(),
         };
-        current.total_ordered_amount += Number(item.amount || 0);
-        current.total_ordered_price += Number(item.total_price || 0);
-        if (item.order?.User?.full_name) {
-          current.all_customers.add(item.order.User.full_name);
+        current.total_ordered_amount += Number(item.quantity || 0);
+        current.total_ordered_price += Number(item.price * item.quantity || 0);
+        if (item.orders?.user?.full_name) {
+          current.all_customers.add(item.orders.user.full_name);
         }
-        salesMap.set(item.product_id, current);
+        salesMap.set(item.productId, current);
       }
     });
     const sales_history = Array.from(salesMap.values()).map((sale) => ({
@@ -567,11 +564,11 @@ export class ProfileService implements IProfileServcie {
       );
     }
     // step: check delete validation (no product in active orders)
-    const activeOrderItems = await prisma.orderItem.findFirst({
+    const activeOrderItems = await prisma.order_items.findFirst({
       where: {
         product: { supplier_id: user.id },
-        order: {
-          status: { in: ["PENDING", "APPROVED"] },
+        orders: {
+          status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] },
         },
       },
     });
@@ -609,11 +606,11 @@ export class ProfileService implements IProfileServcie {
   hardDelete = async (req: Request, res: Response, next: NextFunction) => {
     const user = res.locals.user;
     // step: check delete validation (no product in active orders)
-    const activeOrderItems = await prisma.orderItem.findFirst({
+    const activeOrderItems = await prisma.order_items.findFirst({
       where: {
         product: { supplier_id: user.id },
-        order: {
-          status: { in: ["PENDING", "APPROVED"] },
+        orders: {
+          status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] },
         },
       },
     });

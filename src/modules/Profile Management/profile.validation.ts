@@ -75,11 +75,11 @@ export const addStoreAddressSchema = z.object({
   city: z.string().min(2).optional(),
   state: z.string().min(2).optional(),
   country: z.string().min(2).optional(),
-  postal_code: z.string().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   contact_name: z.string().min(3).optional(),
   contact_phone: z.string().optional(),
+  google_map_link: z.string().optional(),
   working_hours: workingHoursSchema.optional(),
 });
 
@@ -89,11 +89,11 @@ export const updateStoreAddressSchema = z.object({
   city: z.string().min(2).optional(),
   state: z.string().min(2).optional(),
   country: z.string().min(2).optional(),
-  postal_code: z.string().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   contact_name: z.string().min(3).optional(),
   contact_phone: z.string().optional(),
+  google_map_link: z.string().optional(),
   working_hours: workingHoursSchema.optional(),
 });
 

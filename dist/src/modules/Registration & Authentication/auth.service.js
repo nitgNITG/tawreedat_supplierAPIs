@@ -224,6 +224,10 @@ class AuthService {
         if (!user.is_confirmed) {
             throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Please confirm email to update it");
         }
+        // step: check if new_email is same current email
+        if (new_email == user.email) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "You are trying to update to the same email, please enter a new email!");
+        }
         // step: send otp to current email
         const otpCodeForCurrentEmail = (0, createOtp_1.createOtp)();
         const { isEmailSended } = await (0, send_email_1.sendEmail)({

@@ -71,11 +71,11 @@ exports.addStoreAddressSchema = zod_1.default.object({
     city: zod_1.default.string().min(2).optional(),
     state: zod_1.default.string().min(2).optional(),
     country: zod_1.default.string().min(2).optional(),
-    postal_code: zod_1.default.string().optional(),
     latitude: zod_1.default.coerce.number().min(-90).max(90).optional(),
     longitude: zod_1.default.coerce.number().min(-180).max(180).optional(),
     contact_name: zod_1.default.string().min(3).optional(),
     contact_phone: zod_1.default.string().optional(),
+    google_map_link: zod_1.default.string().optional(),
     working_hours: workingHoursSchema.optional(),
 });
 exports.updateStoreAddressSchema = zod_1.default.object({
@@ -84,11 +84,11 @@ exports.updateStoreAddressSchema = zod_1.default.object({
     city: zod_1.default.string().min(2).optional(),
     state: zod_1.default.string().min(2).optional(),
     country: zod_1.default.string().min(2).optional(),
-    postal_code: zod_1.default.string().optional(),
     latitude: zod_1.default.coerce.number().min(-90).max(90).optional(),
     longitude: zod_1.default.coerce.number().min(-180).max(180).optional(),
     contact_name: zod_1.default.string().min(3).optional(),
     contact_phone: zod_1.default.string().optional(),
+    google_map_link: zod_1.default.string().optional(),
     working_hours: workingHoursSchema.optional(),
 });
 exports.getStatSchema = zod_1.default.object({

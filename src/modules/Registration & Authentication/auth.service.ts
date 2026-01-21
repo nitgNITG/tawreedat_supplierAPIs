@@ -290,6 +290,13 @@ export class AuthService implements IAuthServcie {
         "Please confirm email to update it",
       );
     }
+    // step: check if new_email is same current email
+    if (new_email == user.email) {
+      throw new AppError(
+        HttpStatusCode.BAD_REQUEST,
+        "You are trying to update to the same email, please enter a new email!",
+      );
+    }
     // step: send otp to current email
     const otpCodeForCurrentEmail = createOtp();
     const { isEmailSended } = await sendEmail({
