@@ -1,0 +1,128 @@
+// ========== Settings ==========
+
+model application_setting {
+    id                                      String   @id
+    number_of_products_on_homepage          Int      @default(3)
+    number_of_categories_on_homepage        Int      @default(3)
+    number_of_featured_products_on_homepage Int      @default(10)
+    number_of_latest_offers_on_homepage     Int      @default(3)
+    number_of_new_arrivals_on_homepage      Int      @default(3)
+    vat                                     Float    @default(5)
+    last_attempt                            DateTime @default(now())
+    login_attempt_duration_minutes          Int?     @default(20) @db.SmallInt
+    login_attempts                          Int?     @default(5) @db.SmallInt
+    created_at                              DateTime @default(now())
+    updated_at                              DateTime
+    login_as_guest                          Boolean  @default(false)
+    permanent_delete                        Boolean  @default(false)
+    number_of_ads_on_homepage               Int      @default(3)
+    number_of_brands_on_homepage            Int      @default(3)
+    app_android_url                         String?
+    app_android_version                     String?
+    app_ios_url                             String?
+    app_ios_version                         String?
+    paymob_api_key                          String?  @db.LongText
+    paymob_base_url                         String?
+    paymob_payment_methods                  String?
+    paymob_public_key                       String?
+    paymob_secret_key                       String?
+    payment_attempts                        Int?     @default(5) @db.SmallInt
+    paymob_iframes                          String?
+}
+
+model AboutApp {
+    id                String   @id @default(uuid())
+    terms             String?  @db.Text
+    terms_ar          String?  @db.Text
+    about             String?  @db.Text
+    about_ar          String?  @db.Text
+    privacy_policy    String?  @db.Text
+    privacy_policy_ar String?  @db.Text
+    mission           String?  @db.Text
+    mission_ar        String?  @db.Text
+    vision            String?  @db.Text
+    vision_ar         String?  @db.Text
+    digital_card      String?  @db.Text
+    digital_card_ar   String?  @db.Text
+    phone             String?
+    email             String?
+    facebook          String?  @db.VarChar(200)
+    instagram         String?  @db.VarChar(200)
+    linkedin          String?  @db.VarChar(200)
+    pinterest         String?  @db.VarChar(200)
+    reddit            String?  @db.VarChar(200)
+    snapchat          String?  @db.VarChar(200)
+    telegram          String?  @db.VarChar(200)
+    tiktok            String?  @db.VarChar(200)
+    twitter           String?  @db.VarChar(200)
+    whatsapp          String?  @db.VarChar(200)
+    youtube           String?  @db.VarChar(200)
+    created_at        DateTime @default(now())
+    updated_at        DateTime @updatedAt
+
+    @@map("about_app")
+}
+
+model Article {
+    id           Int      @id @default(autoincrement())
+    title        String   @db.VarChar(255)
+    slug         String   @unique @db.VarChar(255)
+    summary      String?  @db.VarChar(500)
+    content      String   @db.Text
+    cover_image  String?
+    keywords     String?  @db.VarChar(255)
+    published_at DateTime
+    created_at   DateTime @default(now())
+    updated_at   DateTime @updatedAt
+    author       String   @db.VarChar(255)
+    is_active    Boolean  @default(true)
+    sort_id      Int      @default(0)
+
+    @@index([sort_id])
+    @@map("article")
+}
+
+model ContactUs {
+    id         Int       @id @default(autoincrement())
+    name       String
+    email      String
+    message    String    @db.Text
+    response   String?   @db.Text
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    read_at    DateTime?
+    read       Boolean   @default(false)
+
+    @@map("contact_us")
+}
+
+model Faq {
+    id         Int          @id @default(autoincrement())
+    question   String
+    answer     String
+    language   FaqLanguage? @default(EN)
+    created_at DateTime     @default(now())
+    updated_at DateTime     @updatedAt
+    is_active  Boolean      @default(true)
+    sort_id    Int          @default(0)
+
+    @@index([sort_id])
+    @@map("faq")
+}
+
+model on_boarding {
+    id          Int       @id @default(autoincrement())
+    image_url   String?
+    title       String
+    title_ar    String?
+    content     String?
+    content_ar  String?
+    subtitle    String?
+    subtitle_ar String?
+    sort_id     Int       @default(0)
+    created_at  DateTime  @default(now())
+    updated_at  DateTime
+    deleted_at  DateTime?
+
+    @@index([sort_id])
+}

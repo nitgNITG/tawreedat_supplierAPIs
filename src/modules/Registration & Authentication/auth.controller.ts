@@ -2,9 +2,11 @@ import { Router } from "express";
 import { AuthService } from "./auth.service";
 import { validation } from "../../core/middlewares/validation.middleware";
 import {
+  appleLoginSchema,
   changePasswordSchema,
   verifyEmailSchema,
   forgetPasswordSchema,
+  googleLoginSchema,
   loginSchema,
   registerSchema,
   resendOtpSchema,
@@ -17,9 +19,11 @@ const authService = new AuthService();
 
 router.post("/register", validation(registerSchema), authService.register);
 router.post("/login", validation(loginSchema), authService.login);
+router.post("/google-login",validation(googleLoginSchema),authService.googleLogin,);
+router.post("/apple-login",validation(appleLoginSchema),authService.appleLogin);
 router.get("/get-supplier-types", authService.getSupplierTypes);
 router.post("/refresh-token", authService.refreshToken);
-router.post("/verify-email", validation(verifyEmailSchema), authService.verifyEmail);
+router.post("/verify-email",validation(verifyEmailSchema),authService.verifyEmail);
 router.patch("/update-email",auth,validation(updateEmailSchema),authService.updateEmail);
 router.post("/resend-otp",validation(resendOtpSchema),authService.resendOtp);
 router.patch("/update-password",auth,validation(updatePasswordSchema),authService.updatePassword);

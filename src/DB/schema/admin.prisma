@@ -1,0 +1,182 @@
+// ========== Admin ==========
+
+model Ad {
+    id                       String         @id @default(uuid())
+    ad_type                  AdType?
+    source                   String?
+    budget                   Decimal?
+    title                    String?        @db.Text
+    title_ar                 String?        @db.Text
+    description              String?        @db.Text
+    description_ar           String?        @db.Text
+    priority                 Int?
+    status                   AdStatus?
+    image_url                String?
+    target_url               String?
+    placement                AdPlacement?
+    popup_size               PopupSize?
+    closable                 Boolean?
+    mobile_screen            String?        @db.Text
+    start_date               DateTime?
+    end_date                 DateTime?
+    time_slots               String?        @db.LongText
+    duration_seconds         Int?
+    shown_seconds            Int?
+    first_shown_at           DateTime?
+    last_shown_at            DateTime?
+    target_customer_badge_id Int?
+    target_supplier_badge_id Int?
+    sort_id                  Int?           @default(0)
+    created_at               DateTime       @default(now())
+    updated_at               DateTime       @updatedAt
+    deleted_at               DateTime?
+    customer_class_id        Int?
+    customer_class           CustomerClass? @relation(fields: [customer_class_id], references: [id])
+    customerBadge            CustomerBadge? @relation(fields: [target_customer_badge_id], references: [id])
+    supplierBadge            SupplierBadge? @relation(fields: [supplierBadgeId], references: [id])
+    supplierBadgeId          String?
+
+    @@index([customer_class_id], map: "ad_customer_class_id_fkey")
+    @@index([target_customer_badge_id], map: "ad_target_customer_badge_id_fkey")
+    @@map("ad")
+}
+
+model reviews {
+    id        String         @id
+    userId    String
+    productId String
+    rating    Float
+    comment   String?        @db.LongText
+    createdAt DateTime       @default(now())
+    updatedAt DateTime
+    status    reviews_status @default(PENDING)
+    product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+    user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, productId])
+    @@index([productId])
+    @@index([userId])
+}
+
+// model Review {
+//   id          String            @id @default(uuid())
+//   reviewer_id String?
+//   target_type ReviewTargetType?
+//   target_id   String?
+//   rating      Int?
+//   comment     String?           @db.Text
+//   order_id    String?
+//   status      reviews_status?   @default(PENDING)
+//   created_at  DateTime          @default(now())
+//   updated_at  DateTime          @updatedAt
+//   deleted_at  DateTime?
+//   reviewer    User?             @relation(fields: [reviewer_id], references: [id])
+//   order       Order?            @relation(fields: [order_id], references: [id])
+
+//   @@map("review")
+// }
+
+// model Admin {
+//   id                      String                  @id // References User.id
+//   type_id                 String?
+//   created_at              DateTime                @default(now())
+//   updated_at              DateTime                @updatedAt
+//   deleted_at              DateTime?
+//   type                    AdminType?              @relation(fields: [type_id], references: [id])
+//   activities              AdminActivity[]
+//   confirmedWalletPayments WalletPaymentDetail[]
+//   confirmedInstaPayments  InstapayPaymentDetail[]
+
+//   @@map("admin")
+// }
+
+// model AdminType {
+//   id          String    @id @default(uuid())
+//   name        String    @unique @db.VarChar(191)
+//   description String?   @db.VarChar(191)
+//   created_at  DateTime  @default(now())
+//   updated_at  DateTime  @updatedAt
+//   deleted_at  DateTime?
+//   admins      Admin[]
+
+//   @@map("admin_type")
+// }
+
+// model AdminActivity {
+//   id                   String        @id @default(uuid())
+//   admin_id             String?
+//   target_module        TargetModule?
+//   activity_type        ActivityType?
+//   activity_description String?       @db.VarChar(191)
+//   extra_info           Json?
+//   created_at           DateTime      @default(now())
+//   updated_at           DateTime      @updatedAt
+//   admin                Admin?        @relation(fields: [admin_id], references: [id])
+
+//   @@map("admin_activity")
+// }
+
+// // Support & Notifications 
+// model Complaint {
+//   id              String                  @id @default(uuid())
+//   created_by_type ComplaintCreatedByType?
+//   created_by_id   String?
+//   order_id        String?
+//   supplier_id     String?
+//   subject         String?                 @db.VarChar(191)
+//   description     String?                 @db.Text
+//   status          ComplaintStatus?
+//   priority        Priority?
+//   created_at      DateTime                @default(now())
+//   updated_at      DateTime                @updatedAt
+//   deleted_at      DateTime?
+
+//   order    Order?             @relation(fields: [order_id], references: [id])
+//   supplier Supplier?          @relation(fields: [supplier_id], references: [id])
+//   messages ComplaintMessage[]
+
+//   @@map("complaint")
+// }
+
+// model ComplaintMessage {
+//   id           String     @id @default(uuid())
+//   complaint_id String?
+//   sender_id    String?
+//   message      String?    @db.Text
+//   created_at   DateTime   @default(now())
+//   updated_at   DateTime   @updatedAt
+//   deleted_at   DateTime?
+//   complaint    Complaint? @relation(fields: [complaint_id], references: [id])
+
+//   @@map("complaint_message")
+// }
+
+// model Notification {
+//   id                String            @id @default(uuid())
+//   recipient_id      String?
+//   title             String?           @db.VarChar(191)
+//   message           String?           @db.Text
+//   link              String?           @db.VarChar(191)
+//   notification_type NotificationType?
+//   channel           Channel?
+//   is_read           Boolean?          @default(false)
+//   read_at           DateTime?
+//   scheduled_at      DateTime?
+//   sent_at           DateTime?
+//   created_at        DateTime          @default(now())
+//   updated_at        DateTime          @updatedAt
+//   deleted_at        DateTime?
+
+//   @@map("notification")
+// }
+
+// model NotificationSetting {
+//   id         String   @id @default(uuid())
+//   user_id    String?
+//   channel    Channel?
+//   enabled    Boolean? @default(true)
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+
+//   @@map("notification_setting")
+// }

@@ -1,0 +1,191 @@
+// ========== Payments ==========
+
+model PaymentAttempt {
+    id          Int                   @id @default(autoincrement())
+    orderId     Int
+    provider    String
+    intentionId String?
+    status      PaymentAttempt_status @default(PENDING)
+    rawResponse String?               @db.LongText
+    createdAt   DateTime              @default(now())
+    orders      orders                @relation(fields: [orderId], references: [id])
+    refunds     refunds[]
+
+    @@index([intentionId])
+    @@index([orderId])
+}
+
+model refund_items {
+    id          Int         @id @default(autoincrement())
+    refundId    Int
+    orderItemId Int
+    quantity    Int
+    amount      Float
+    order_items order_items @relation(fields: [orderItemId], references: [id])
+    refunds     refunds     @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+    @@unique([refundId, orderItemId])
+    @@index([orderItemId], map: "refund_items_orderItemId_fkey")
+}
+
+model refunds {
+    id                               Int             @id @default(autoincrement())
+    orderId                          Int
+    paymentAttemptId                 Int?
+    amount                           Float
+    currency                         String          @default("EGP")
+    reason                           String?
+    status                           refunds_status  @default(REQUESTED)
+    provider                         String?
+    providerRefundId                 String?
+    rawResponse                      String?         @db.LongText
+    requestedById                    String?
+    reviewedById                     String?
+    reviewedAt                       DateTime?
+    createdAt                        DateTime        @default(now())
+    updatedAt                        DateTime
+    refund_items                     refund_items[]
+    orders                           orders          @relation(fields: [orderId], references: [id])
+    PaymentAttempt                   PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id])
+    user_refunds_requestedByIdTouser User?           @relation("refunds_requestedByIdTouser", fields: [requestedById], references: [id])
+    user_refunds_reviewedByIdTouser  User?           @relation("refunds_reviewedByIdTouser", fields: [reviewedById], references: [id])
+
+    @@index([orderId])
+    @@index([paymentAttemptId], map: "refunds_paymentAttemptId_fkey")
+    @@index([providerRefundId])
+    @@index([requestedById])
+    @@index([reviewedById])
+}
+
+// model PaymentTransaction {
+//   id           String         @id @default(uuid())
+//   order_id     String?
+//   payment_type PaymentType?
+//   amount       Decimal?
+//   currency     String?        @default("EGP") @db.VarChar(191)
+//   status       PaymentStatus?
+//   paid_at      DateTime?
+//   created_at   DateTime       @default(now())
+//   updated_at   DateTime       @updatedAt
+//   deleted_at   DateTime?
+
+//   order             Order?                    @relation(fields: [order_id], references: [id])
+//   cardDetail        CardPaymentDetail?
+//   walletDetail      WalletPaymentDetail?
+//   instapayDetail    InstapayPaymentDetail?
+//   installmentDetail InstallmentPaymentDetail?
+//   refunds           Refund[]
+
+//   @@map("payment_transaction")
+// }
+
+// model CardPaymentDetail {
+//   id                      String              @id @default(uuid())
+//   payment_transaction_id  String?             @unique
+//   provider                CardProvider?
+//   card_brand              CardBrand?
+//   card_last_four          String?             @db.VarChar(191)
+//   card_holder_name        String?             @db.VarChar(191)
+//   provider_transaction_id String?             @db.VarChar(191)
+//   provider_reference      String?             @db.VarChar(191)
+//   provider_response       Json?
+//   created_at              DateTime            @default(now())
+//   updated_at              DateTime            @updatedAt
+//   deleted_at              DateTime?
+//   paymentTransaction      PaymentTransaction? @relation(fields: [payment_transaction_id], references: [id])
+
+//   @@map("card_payment_detail")
+// }
+
+// model WalletPaymentDetail {
+//   id                          String              @id @default(uuid())
+//   payment_transaction_id      String?             @unique
+//   provider                    WalletProvider?
+//   wallet_phone                String?             @db.VarChar(191)
+//   provider_transaction_id     String?             @db.VarChar(191)
+//   provider_reference          String?             @db.VarChar(191)
+//   provider_response           Json?
+//   confirmation_screenshot_url String?             @db.VarChar(191)
+//   confirmation_status         ConfirmationStatus? @default(PENDING)
+//   confirmed_by_admin_id       String?
+//   confirmed_at                DateTime?
+//   rejection_reason            String?             @db.VarChar(191)
+//   created_at                  DateTime            @default(now())
+//   updated_at                  DateTime            @updatedAt
+//   deleted_at                  DateTime?
+
+//   paymentTransaction PaymentTransaction? @relation(fields: [payment_transaction_id], references: [id])
+//   admin              Admin?              @relation(fields: [confirmed_by_admin_id], references: [id])
+
+//   @@map("wallet_payment_detail")
+// }
+
+// model InstapayPaymentDetail {
+//   id                          String              @id @default(uuid())
+//   payment_transaction_id      String?             @unique
+//   sender_ipa                  String?             @db.VarChar(191)
+//   receiver_ipa                String?             @db.VarChar(191)
+//   provider_transaction_id     String?             @db.VarChar(191)
+//   provider_reference          String?             @db.VarChar(191)
+//   provider_response           Json?
+//   confirmation_screenshot_url String?             @db.VarChar(191)
+//   confirmation_status         ConfirmationStatus? @default(PENDING)
+//   confirmed_by_admin_id       String?
+//   confirmed_at                DateTime?
+//   rejection_reason            String?             @db.VarChar(191)
+//   created_at                  DateTime            @default(now())
+//   updated_at                  DateTime            @updatedAt
+//   deleted_at                  DateTime?
+
+//   paymentTransaction PaymentTransaction? @relation(fields: [payment_transaction_id], references: [id])
+//   admin              Admin?              @relation(fields: [confirmed_by_admin_id], references: [id])
+
+//   @@map("instapay_payment_detail")
+// }
+
+// model InstallmentPaymentDetail {
+//   id                      String               @id @default(uuid())
+//   payment_transaction_id  String?              @unique
+//   provider                InstallmentProvider?
+//   total_amount            Decimal?
+//   down_payment            Decimal?
+//   installment_months      Int?
+//   monthly_amount          Decimal?
+//   interest_rate           Decimal?
+//   customer_national_id    String?              @db.VarChar(191)
+//   provider_transaction_id String?              @db.VarChar(191)
+//   provider_reference      String?              @db.VarChar(191)
+//   provider_response       Json?
+//   installments_paid       Int?                 @default(0)
+//   next_due_date           DateTime?            @db.Date
+//   created_at              DateTime             @default(now())
+//   updated_at              DateTime             @updatedAt
+//   deleted_at              DateTime?
+
+//   paymentTransaction PaymentTransaction? @relation(fields: [payment_transaction_id], references: [id])
+
+//   @@map("installment_payment_detail")
+// }
+
+// model Refund {
+//   id                      String          @id @default(uuid())
+//   original_transaction_id String?
+//   requested_by_id         String?
+//   reviewed_by_id          String?
+//   refund_amount           Decimal?
+//   refund_reason           String?         @db.VarChar(191)
+//   refund_method           RefundMethod?
+//   status                  refunds_status?
+//   provider_refund_id      String?         @db.VarChar(191)
+//   provider_response       Json?
+//   processed_at            DateTime?
+//   created_at              DateTime        @default(now())
+//   updated_at              DateTime        @updatedAt
+//   deleted_at              DateTime?
+
+//   originalTransaction PaymentTransaction? @relation(fields: [original_transaction_id], references: [id])
+//   requested_by        User?               @relation("RefundRequestedBy", fields: [requested_by_id], references: [id])
+//   reviewed_by         User?               @relation("RefundReviewedBy", fields: [reviewed_by_id], references: [id])
+
+//   @@map("refund")
+// }

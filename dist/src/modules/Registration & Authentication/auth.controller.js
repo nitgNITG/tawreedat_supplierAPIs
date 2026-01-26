@@ -9,6 +9,8 @@ const router = (0, express_1.Router)();
 const authService = new auth_service_1.AuthService();
 router.post("/register", (0, validation_middleware_1.validation)(auth_validation_1.registerSchema), authService.register);
 router.post("/login", (0, validation_middleware_1.validation)(auth_validation_1.loginSchema), authService.login);
+router.post("/google-login", (0, validation_middleware_1.validation)(auth_validation_1.googleLoginSchema), authService.googleLogin);
+router.post("/apple-login", (0, validation_middleware_1.validation)(auth_validation_1.appleLoginSchema), authService.appleLogin);
 router.get("/get-supplier-types", authService.getSupplierTypes);
 router.post("/refresh-token", authService.refreshToken);
 router.post("/verify-email", (0, validation_middleware_1.validation)(auth_validation_1.verifyEmailSchema), authService.verifyEmail);

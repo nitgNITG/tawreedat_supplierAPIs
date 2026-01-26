@@ -1,7 +1,46 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const client_1 = require("@prisma/client");
+const jwt = __importStar(require("jsonwebtoken"));
+const jwks_rsa_1 = __importDefault(require("jwks-rsa"));
+const google_auth_library_1 = require("google-auth-library");
 const generateHTML_1 = require("../../utils/sendEmail/generateHTML");
 const jwt_1 = require("../../utils/jwt");
 const createOtp_1 = require("../../utils/createOtp");
@@ -42,16 +81,13 @@ class AuthService {
             where: { name: "Supplier" },
         });
         if (!role) {
-            role = await prisma_1.prisma.userRole.create({
-                data: {
-                    name: "Supplier",
-                    description: "Supplier role description",
-                },
-            });
-            // throw new AppError(
-            //   HttpStatusCode.BAD_REQUEST,
-            //   "No supplier role with name Supplier",
-            // );
+            // role = await prisma.userRole.create({
+            //   data: {
+            //     name: "Supplier",
+            //     description: "Supplier role description",
+            //   },
+            // });
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Supplier role not founded in db");
         }
         // step: get or create SupplierType
         let supplierType = await prisma_1.prisma.supplierType.findFirst();
@@ -141,6 +177,218 @@ class AuthService {
         return (0, response_handler_1.responseHandler)({
             res,
             message: "تم تسجيل الدخول بنجاح",
+            data: { accessToken, refreshToken, user },
+        });
+    };
+    // ============================ googleLogin ============================
+    googleLogin = async (req, res, next) => {
+        const { id_token } = req.body;
+        // step: verify Google token
+        const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_WEB_CLIENT_ID);
+        let payload;
+        try {
+            const ticket = await client.verifyIdToken({
+                idToken: id_token,
+                audience: process.env.GOOGLE_WEB_CLIENT_ID,
+            });
+            payload = ticket.getPayload();
+        }
+        catch (error) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid Google token");
+        }
+        if (!payload || !payload.email) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid Google token payload");
+        }
+        const { email, name } = payload;
+        // step: find or create user
+        let user = await prisma_1.prisma.user.findUnique({
+            where: { email },
+            include: { role: true },
+        });
+        if (!user) {
+            // step: get UserRole
+            let role = await prisma_1.prisma.userRole.findFirst({
+                where: { name: "Supplier" },
+            });
+            if (!role) {
+                throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Supplier role not founded in db");
+            }
+            // step: get SupplierType
+            let supplierType = await prisma_1.prisma.supplierType.findFirst();
+            if (!supplierType) {
+                throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Supplier type not founded in db");
+            }
+            // step: create user with Google login
+            const newUser = await prisma_1.prisma.user.create({
+                data: {
+                    role_id: role.id,
+                    full_name: name ?? "Google User",
+                    email,
+                    login_type: client_1.LoginType.GOOGLE,
+                    is_confirmed: true, // Google accounts are pre-verified
+                    lang: client_1.Language.AR,
+                },
+                include: { role: true },
+            });
+            // step: create supplier record
+            await prisma_1.prisma.supplier.create({
+                data: {
+                    id: newUser.id,
+                    type_id: supplierType.id,
+                    national_id: "",
+                    tax_card: "",
+                    commercial_register: "",
+                },
+            });
+            user = newUser;
+        }
+        else {
+            // step: update login_type to GOOGLE if currently LOCAL
+            if (user.login_type === client_1.LoginType.LOCAL) {
+                user = await prisma_1.prisma.user.update({
+                    where: { email },
+                    data: { login_type: client_1.LoginType.GOOGLE },
+                    include: { role: true },
+                });
+            }
+        }
+        // step: update last_login_at
+        await prisma_1.prisma.user.update({
+            where: { id: user.id },
+            data: { last_login_at: Date.now().toString() },
+        });
+        // step: create tokens
+        const accessToken = (0, jwt_1.createJwt)({ userId: user.id, userEmail: user.email }, process.env.ACCESS_SEGNATURE, {
+            expiresIn: "1h",
+            jwtid: (0, createOtp_1.createOtp)(),
+        });
+        const refreshToken = (0, jwt_1.createJwt)({ userId: user.id, userEmail: user.email }, process.env.REFRESH_SEGNATURE, {
+            expiresIn: "7d",
+            jwtid: (0, createOtp_1.createOtp)(),
+        });
+        return (0, response_handler_1.responseHandler)({
+            res,
+            message: "Google login successful",
+            data: { accessToken, refreshToken, user },
+        });
+    };
+    // ============================ appleLogin ============================
+    appleLogin = async (req, res, next) => {
+        const { id_token, user: appleUser } = req.body;
+        // step: verify Apple token and extract payload
+        let payload;
+        try {
+            // Apple's public keys endpoint
+            const client = (0, jwks_rsa_1.default)({
+                jwksUri: "https://appleid.apple.com/auth/keys",
+                cache: true,
+                rateLimit: true,
+            });
+            // Decode token header to get key ID
+            const decodedHeader = jwt.decode(id_token, { complete: true });
+            if (!decodedHeader || !decodedHeader.header) {
+                throw new Error("Invalid token structure");
+            }
+            // Get the signing key from Apple
+            const key = await client.getSigningKey(decodedHeader.header.kid);
+            const signingKey = key.getPublicKey();
+            // Verify the token
+            payload = jwt.verify(id_token, signingKey, {
+                algorithms: ["RS256"],
+                issuer: "https://appleid.apple.com",
+            });
+        }
+        catch (error) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.UNAUTHORIZED, "Invalid Apple token");
+        }
+        // step: extract email - from token payload or from user object (first sign-in only)
+        const email = payload.email || appleUser?.email;
+        const appleUserId = payload.sub;
+        if (!email) {
+            throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Email not provided. Please share your email when signing in with Apple.");
+        }
+        // step: find or create user
+        let user = await prisma_1.prisma.user.findFirst({
+            where: {
+                OR: [{ email }, { apple_id: appleUserId }],
+            },
+            include: { role: true },
+        });
+        if (!user) {
+            // step: get UserRole
+            let role = await prisma_1.prisma.userRole.findFirst({
+                where: { name: "Supplier" },
+            });
+            if (!role) {
+                throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Supplier role not founded in db");
+            }
+            // step: get SupplierType
+            let supplierType = await prisma_1.prisma.supplierType.findFirst();
+            if (!supplierType) {
+                throw new app_error_1.AppError(http_status_code_1.HttpStatusCode.BAD_REQUEST, "Supplier type not founded in db");
+            }
+            // step: construct full name from Apple user info
+            let fullName = "Apple User";
+            if (appleUser?.name) {
+                const firstName = appleUser.name.firstName || "";
+                const lastName = appleUser.name.lastName || "";
+                fullName = `${firstName} ${lastName}`.trim() || "Apple User";
+            }
+            // step: create user with Apple login
+            const newUser = await prisma_1.prisma.user.create({
+                data: {
+                    role_id: role.id,
+                    full_name: fullName,
+                    email,
+                    apple_id: appleUserId,
+                    login_type: client_1.LoginType.APPLE,
+                    is_confirmed: true, // Apple accounts are pre-verified
+                    lang: client_1.Language.AR,
+                },
+                include: { role: true },
+            });
+            // step: create supplier record
+            await prisma_1.prisma.supplier.create({
+                data: {
+                    id: newUser.id,
+                    type_id: supplierType.id,
+                    national_id: "",
+                    tax_card: "",
+                    commercial_register: "",
+                },
+            });
+            user = newUser;
+        }
+        else {
+            // step: update apple_id if not set and update login_type to APPLE
+            if (!user.apple_id || user.login_type !== client_1.LoginType.APPLE) {
+                user = await prisma_1.prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        apple_id: appleUserId,
+                        login_type: client_1.LoginType.APPLE,
+                    },
+                    include: { role: true },
+                });
+            }
+        }
+        // step: update last_login_at
+        await prisma_1.prisma.user.update({
+            where: { id: user.id },
+            data: { last_login_at: Date.now().toString() },
+        });
+        // step: create tokens
+        const accessToken = (0, jwt_1.createJwt)({ userId: user.id, userEmail: user.email }, process.env.ACCESS_SEGNATURE, {
+            expiresIn: "1h",
+            jwtid: (0, createOtp_1.createOtp)(),
+        });
+        const refreshToken = (0, jwt_1.createJwt)({ userId: user.id, userEmail: user.email }, process.env.REFRESH_SEGNATURE, {
+            expiresIn: "7d",
+            jwtid: (0, createOtp_1.createOtp)(),
+        });
+        return (0, response_handler_1.responseHandler)({
+            res,
+            message: "Apple login successful",
             data: { accessToken, refreshToken, user },
         });
     };

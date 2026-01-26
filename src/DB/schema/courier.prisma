@@ -1,0 +1,279 @@
+// ========== Courier ==========
+
+model Countries {
+    id        String    @id
+    name      String    @db.VarChar(100)
+    code      String    @db.VarChar(3)
+    phoneCode String    @db.VarChar(5)
+    Regions   Regions[]
+}
+
+model Regions {
+    id             Int              @id @default(autoincrement())
+    name           String           @unique @db.VarChar(100)
+    countryId      String?
+    Countries      Countries?       @relation(fields: [countryId], references: [id], onDelete: Cascade)
+    ShippingPrices ShippingPrices[]
+
+    @@index([countryId], map: "Region_countryId_fkey")
+}
+
+model ShippingMethod {
+    id             Int              @id @default(autoincrement())
+    name           String           @unique @db.VarChar(100)
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime
+    ShippingPrices ShippingPrices[]
+}
+
+model ShippingPrices {
+    id                    Int            @id @default(autoincrement())
+    regionId              Int
+    methodId              Int
+    basePrice             Float
+    additionalWeightPrice Float
+    estimatedDeliveryDays Int
+    createdAt             DateTime       @default(now())
+    updatedAt             DateTime
+    ShippingMethod        ShippingMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+    Regions               Regions        @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+    @@unique([regionId, methodId])
+    @@index([methodId], map: "ShippingPrices_methodId_fkey")
+}
+
+// model ShippingRepresentative {
+//   id                   String                @id // References User.id
+//   type_id              String?
+//   national_id          String?               @db.VarChar(191)
+//   status               RepresentativeStatus?
+//   is_available         Boolean?              @default(true)
+//   vehicle_type         VehicleType?
+//   vehicle_plate        String?               @db.VarChar(191)
+//   max_load             Decimal?
+//   current_latitude     Decimal?
+//   current_longitude    Decimal?
+//   last_location_update DateTime?
+//   created_at           DateTime              @default(now())
+//   updated_at           DateTime              @updatedAt
+//   deleted_at           DateTime?
+
+//   type                  ShippingRepresentativeType?          @relation(fields: [type_id], references: [id])
+//   stats                 ShippingRepresentativeStat?
+//   coverageAreas         RepresentativeCoverageArea[]
+//   assignments           OrderAssignment[]
+//   pickupConfirmations   RepresentativePickupConfirmation[]
+//   deliveryConfirmations RepresentativeDeliveryConfirmation[]
+
+//   @@map("shipping_representative")
+// }
+
+// model ShippingRepresentativeType {
+//   id              String                   @id @default(uuid())
+//   name            String                   @unique @db.VarChar(191)
+//   description     String?                  @db.VarChar(191)
+//   created_at      DateTime                 @default(now())
+//   updated_at      DateTime                 @updatedAt
+//   deleted_at      DateTime?
+//   representatives ShippingRepresentative[]
+
+//   @@map("shipping_representative_type")
+// }
+
+// model ShippingRepresentativeStat {
+//   representative_id     String                 @id
+//   total_deliveries      Int?
+//   successful_deliveries Int?
+//   failed_deliveries     Int?
+//   rating                Decimal?
+//   created_at            DateTime               @default(now())
+//   updated_at            DateTime               @updatedAt
+//   representative        ShippingRepresentative @relation(fields: [representative_id], references: [id])
+
+//   @@map("shipping_representative_stat")
+// }
+
+// model Governorate {
+//   id            String         @id @default(uuid())
+//   name          String?        @db.VarChar(191)
+//   is_active     Boolean?       @default(true)
+//   created_at    DateTime       @default(now())
+//   updated_at    DateTime       @updatedAt
+//   deleted_at    DateTime?
+//   deliveryAreas DeliveryArea[]
+
+//   coverageAreas RepresentativeCoverageArea[]
+
+//   @@map("governorate")
+// }
+
+// model DeliveryArea {
+//   id             String                       @id @default(uuid())
+//   governorate_id String?
+//   name           String?                      @db.VarChar(191)
+//   is_active      Boolean?                     @default(true)
+//   created_at     DateTime                     @default(now())
+//   updated_at     DateTime                     @updatedAt
+//   deleted_at     DateTime?
+//   governorate    Governorate?                 @relation(fields: [governorate_id], references: [id])
+//   coverageAreas  RepresentativeCoverageArea[]
+
+//   @@map("delivery_area")
+// }
+
+// model RepresentativeCoverageArea {
+//   id                 String   @id @default(uuid())
+//   representative_ids Json? // Array of IDs (String)
+//   governorate_ids    Json? // Array of IDs (String)
+//   area_id            String?
+//   created_at         DateTime @default(now())
+//   updated_at         DateTime @updatedAt
+
+//   area                   DeliveryArea?           @relation(fields: [area_id], references: [id])
+//   shippingRepresentative ShippingRepresentative? @relation(fields: [id], references: [id], map: "RepCoverage_Rep_fk")
+//   governorate            Governorate?            @relation(fields: [id], references: [id], map: "RepCoverage_Gov_fk")
+
+//   @@map("representative_coverage_area")
+// }
+
+// model ShippingPrice {
+//   id                      String   @id @default(uuid())
+//   region_id               Int
+//   method_id               Int
+//   base_price              Float
+//   additional_weight_price Float
+//   estimated_delivery_days Int
+//   created_at              DateTime @default(now())
+//   updated_at              DateTime @updatedAt
+
+//   @@map("shipping_price")
+// }
+
+// model OrderAssignment {
+//   id                      String            @id @default(uuid())
+//   order_id                String?
+//   representative_id       String?
+//   status                  AssignmentStatus?
+//   pickup_address_id       String?
+//   estimated_pickup_time   DateTime?
+//   actual_pickup_time      DateTime?
+//   delivery_address_id     String?
+//   estimated_delivery_time DateTime?
+//   actual_delivery_time    DateTime?
+//   failure_reason          String?           @db.VarChar(191)
+//   notes                   String?           @db.Text
+//   created_at              DateTime          @default(now())
+//   updated_at              DateTime          @updatedAt
+//   deleted_at              DateTime?
+
+//   order           Order?                  @relation(fields: [order_id], references: [id])
+//   representative  ShippingRepresentative? @relation(fields: [representative_id], references: [id])
+//   pickupAddress   SupplierStoreAddress?   @relation("PickupAddress", fields: [pickup_address_id], references: [id])
+//   deliveryAddress CustomerAddress?        @relation("DeliveryAddress", fields: [delivery_address_id], references: [id])
+
+//   handoverConfirmation SupplierHandoverConfirmation[]
+//   pickupConfirmation   RepresentativePickupConfirmation[]
+//   deliveryConfirmation RepresentativeDeliveryConfirmation[]
+//   receiptConfirmation  CustomerReceiptConfirmation[]
+//   issues               DeliveryIssue[]
+
+//   @@map("order_assignment")
+// }
+
+// model SupplierHandoverConfirmation {
+//   id                String            @id @default(uuid())
+//   assignment_id     String?
+//   supplier_id       String?
+//   items_amount      Decimal?
+//   package_condition PackageCondition?
+//   condition_notes   String?           @db.Text
+//   photos_url        String?           @db.VarChar(191)
+//   receipt_number    String?           @db.VarChar(191)
+//   confirmed_at      DateTime?
+//   created_at        DateTime          @default(now())
+//   updated_at        DateTime          @updatedAt
+
+//   assignment OrderAssignment? @relation(fields: [assignment_id], references: [id])
+//   supplier   Supplier?        @relation(fields: [supplier_id], references: [id])
+
+//   @@map("supplier_handover_confirmation")
+// }
+
+// model RepresentativePickupConfirmation {
+//   id                String            @id @default(uuid())
+//   assignment_id     String?
+//   representative_id String?
+//   items_amount      Decimal?
+//   package_condition PackageCondition?
+//   condition_notes   String?           @db.Text
+//   photos_url        String?           @db.VarChar(191)
+//   receipt_number    String?           @db.VarChar(191)
+//   pickup_latitude   Decimal?
+//   pickup_longitude  Decimal?
+//   confirmed_at      DateTime?
+//   created_at        DateTime          @default(now())
+//   updated_at        DateTime          @updatedAt
+
+//   assignment     OrderAssignment?        @relation(fields: [assignment_id], references: [id])
+//   representative ShippingRepresentative? @relation(fields: [representative_id], references: [id])
+
+//   @@map("representative_pickup_confirmation")
+// }
+
+// model RepresentativeDeliveryConfirmation {
+//   id                String            @id @default(uuid())
+//   assignment_id     String?
+//   representative_id String?
+//   items_amount      Decimal?
+//   package_condition PackageCondition?
+//   condition_notes   String?           @db.Text
+//   photos_url        String?           @db.VarChar(191)
+//   pickup_latitude   Decimal?
+//   pickup_longitude  Decimal?
+//   otp_sended        Int?
+//   confirmed_at      DateTime?
+//   created_at        DateTime          @default(now())
+//   updated_at        DateTime          @updatedAt
+
+//   assignment     OrderAssignment?        @relation(fields: [assignment_id], references: [id])
+//   representative ShippingRepresentative? @relation(fields: [representative_id], references: [id])
+
+//   @@map("representative_delivery_confirmation")
+// }
+
+// model CustomerReceiptConfirmation {
+//   id                    String            @id @default(uuid())
+//   assignment_id         String?
+//   customer_id           String?
+//   items_amount          Decimal?
+//   package_condition     PackageCondition?
+//   condition_notes       String?           @db.Text
+//   photos_url            String?           @db.VarChar(191)
+//   receipt_number        String?           @db.VarChar(191)
+//   otp_verified          Boolean?
+//   confirmed_at          DateTime?
+//   product_rating        Int?
+//   representative_rating Int?
+//   delivery_feedback     String?           @db.Text
+//   created_at            DateTime          @default(now())
+//   updated_at            DateTime          @updatedAt
+
+//   assignment OrderAssignment? @relation(fields: [assignment_id], references: [id])
+//   customer   Customer?        @relation(fields: [customer_id], references: [id])
+
+//   @@map("customer_receipt_confirmation")
+// }
+
+// model DeliveryIssue {
+//   id            String   @id @default(uuid())
+//   assignment_id String?
+//   issue_type    String?  @db.VarChar(191)
+//   description   String?  @db.Text
+//   photo_url     String?  @db.VarChar(191)
+//   created_at    DateTime @default(now())
+//   updated_at    DateTime @updatedAt
+
+//   assignment OrderAssignment? @relation(fields: [assignment_id], references: [id])
+
+//   @@map("delivery_issue")
+// }

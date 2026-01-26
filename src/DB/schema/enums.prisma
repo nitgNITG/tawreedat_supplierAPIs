@@ -1,0 +1,263 @@
+// =========================================================
+// Enums
+// =========================================================
+
+enum DiscountType {
+    PERCENT
+    FIXED
+}
+
+enum AdType {
+    EXTERNAL
+    INTERNAL
+}
+
+enum AdStatus {
+    DRAFT
+    ACTIVE
+    PAUSED
+    EXPIRED
+}
+
+enum AdPlacement {
+    TOP
+    MIDDLE
+    BOTTOM
+}
+
+enum PopupSize {
+    SMALL
+    MEDIUM
+    LARGE
+}
+
+enum CustomerClassName {
+    NEW
+    REPEAT
+    LOYAL
+    LOST
+}
+
+enum PackageCondition {
+    GOOD
+    DAMAGED
+    INCOMPLETE
+}
+
+enum FaqLanguage {
+    EN
+    AR
+}
+
+enum Language {
+    EN
+    AR
+}
+
+enum LoginType {
+    LOCAL
+    GOOGLE
+    FACEBOOK
+    APPLE
+}
+
+enum Gender {
+    MALE
+    FEMALE
+}
+
+enum PaymentAttempt_status {
+    PENDING
+    PAID
+    PARTIALLY_REFUNDED
+    REFUNDED
+    FAILED
+}
+
+enum refunds_status {
+    REQUESTED
+    APPROVED
+    REJECTED
+    PROCESSING
+    COMPLETED
+    FAILED
+    CANCELLED
+}
+
+enum reviews_status {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
+enum orders_status {
+    PENDING
+    CONFIRMED
+    PROCESSING
+    SHIPPED
+    DELIVERED
+    CANCELLED
+}
+
+enum orders_paymentMethod {
+    CREDIT_CARD
+    PAYPAL
+    BANK_TRANSFER
+    CASH_ON_DELIVERY
+}
+
+enum orders_paymentStatus {
+    PENDING
+    PAID
+    PARTIALLY_REFUNDED
+    REFUNDED
+    FAILED
+}
+
+// new enums
+
+enum ContractStatus {
+    PENDING
+    ACTIVE
+    INACTIVE
+    CANCELLED
+}
+
+enum TargetModule {
+    PRODUCTS
+    SUPPLIERS
+    OFFERS
+    ADS
+}
+
+enum ActivityType {
+    CREATE
+    UPDATE
+    DELETE
+    VIEW
+}
+
+enum ComplaintCreatedByType {
+    CUSTOMER
+    SUPPLIER
+}
+
+enum ComplaintStatus {
+    OPEN
+    IN_PROGRESS
+    RESOLVED
+    CLOSED
+}
+
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+}
+
+enum NotificationType {
+    INFO
+    WARNING
+    SUCCESS
+    ERROR
+}
+
+enum Channel {
+    EMAIL
+    SMS
+}
+
+enum ReviewTargetType {
+    SUPPLIER
+    PRODUCT
+    REPRESENTATIVE
+}
+
+enum CustomerBadgeName {
+    BASIC
+    STANDARD
+    VIP
+}
+
+enum PaymentType {
+    CARD
+    WALLET
+    INSTAPAY
+    INSTALLMENT
+}
+
+enum PaymentStatus {
+    PENDING
+    PROCESSING
+    PAID
+    FAILED
+    CANCELLED
+    REFUNDED
+    PARTIALLY_REFUNDED
+}
+
+enum CardProvider {
+    PAYMOB
+    FAWRY
+}
+
+enum CardBrand {
+    VISA
+    MASTERCARD
+    MEEZA
+}
+
+enum WalletProvider {
+    VODAFONE_CASH
+    ORANGE_CASH
+    ETISALAT_CASH
+    WE_PAY
+}
+
+enum ConfirmationStatus {
+    PENDING
+    CONFIRMED
+    REJECTED
+}
+
+enum InstallmentProvider {
+    VALU
+    HALAN
+    SYMPL
+    SOUHOOLA
+    CONTACT
+}
+
+enum RefundMethod {
+    SAME_METHOD
+}
+
+enum RepresentativeStatus {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+}
+
+enum VehicleType {
+    MOTORCYCLE
+    CAR
+    VAN
+    TRUCK
+}
+
+enum AssignmentStatus {
+    ASSIGNED
+    ACCEPTED
+    REJECTED
+    PICKED_UP
+    IN_TRANSIT
+    DELIVERED
+    FAILED
+    RETURNED
+}
+
+enum RequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}

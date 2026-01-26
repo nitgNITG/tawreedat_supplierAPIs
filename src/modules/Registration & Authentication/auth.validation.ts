@@ -39,6 +39,26 @@ export const loginSchema = z.object({
   password: z.string(),
 });
 
+export const googleLoginSchema = z.object({
+  id_token: z.string().min(1, "Google ID token is required"),
+});
+
+export const appleLoginSchema = z.object({
+  id_token: z.string().min(1, "Apple ID token is required"),
+  // Apple provides user info only on first sign-in
+  user: z
+    .object({
+      name: z
+        .object({
+          firstName: z.string().optional(),
+          lastName: z.string().optional(),
+        })
+        .optional(),
+      email: z.email().optional(),
+    })
+    .optional(),
+});
+
 export const verifyEmailSchema = z.object({
   email: z.email(),
   user_otp: z.string(),

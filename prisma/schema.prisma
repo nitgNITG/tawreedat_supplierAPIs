@@ -93,7 +93,7 @@ model Wallet {
 model Supplier {
   id                  String   @id // References User.id (String)
   type_id             String
-  badge_id           String?
+  badge_id            String?
   national_id         String   @db.VarChar(191)
   synonyms            String?  @db.VarChar(191)
   tax_card            String   @db.VarChar(191)

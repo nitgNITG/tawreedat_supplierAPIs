@@ -1,8 +1,10 @@
 import z from "zod";
 import {
+  appleLoginSchema,
   changePasswordSchema,
   verifyEmailSchema,
   forgetPasswordSchema,
+  googleLoginSchema,
   loginSchema,
   registerSchema,
   resendOtpSchema,
@@ -18,3 +20,5 @@ export type loginDTO = z.infer<typeof loginSchema>;
 export type updatePasswordDTO = z.infer<typeof updatePasswordSchema>;
 export type forgetPasswordDTO = z.infer<typeof forgetPasswordSchema>;
 export type changePasswordDTO = z.infer<typeof changePasswordSchema>;
+export type googleLoginDTO = z.infer<typeof googleLoginSchema>;
+export type appleLoginDTO = z.infer<typeof appleLoginSchema>;

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePasswordSchema = exports.forgetPasswordSchema = exports.updatePasswordSchema = exports.resendOtpSchema = exports.updateEmailSchema = exports.verifyEmailSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.changePasswordSchema = exports.forgetPasswordSchema = exports.updatePasswordSchema = exports.resendOtpSchema = exports.updateEmailSchema = exports.verifyEmailSchema = exports.appleLoginSchema = exports.googleLoginSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = __importDefault(require("zod"));
 const global_types_1 = require("../../types/global.types");
 exports.registerSchema = zod_1.default
@@ -41,6 +41,24 @@ exports.registerSchema = zod_1.default
 exports.loginSchema = zod_1.default.object({
     email: zod_1.default.email(),
     password: zod_1.default.string(),
+});
+exports.googleLoginSchema = zod_1.default.object({
+    id_token: zod_1.default.string().min(1, "Google ID token is required"),
+});
+exports.appleLoginSchema = zod_1.default.object({
+    id_token: zod_1.default.string().min(1, "Apple ID token is required"),
+    // Apple provides user info only on first sign-in
+    user: zod_1.default
+        .object({
+        name: zod_1.default
+            .object({
+            firstName: zod_1.default.string().optional(),
+            lastName: zod_1.default.string().optional(),
+        })
+            .optional(),
+        email: zod_1.default.email().optional(),
+    })
+        .optional(),
 });
 exports.verifyEmailSchema = zod_1.default.object({
     email: zod_1.default.email(),
